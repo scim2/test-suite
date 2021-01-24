@@ -2,6 +2,7 @@ package testsuite
 
 import (
 	"github.com/di-wu/parser"
+	"github.com/di-wu/parser/ast"
 	"github.com/di-wu/parser/op"
 	"strings"
 )
@@ -10,7 +11,7 @@ import (
 
 // is checks whether the given string (s) complies with the given parser rules (i).
 func is(i interface{}, s string) error {
-	p, err := parser.New([]byte(s))
+	p, err := ast.New([]byte(s))
 	if err != nil {
 		return err
 	}
@@ -94,6 +95,8 @@ var (
 	f = "false"
 	// t = %x74.72.75.65 ; true
 	t = "true"
+	// n = %x6e.75.6c.6c ; null
+	n = "null"
 )
 
 // IsBoolean checks whether the given string is a boolean value. A boolean has no case sensitivity.
@@ -220,6 +223,7 @@ var (
 
 // IsBase64 checks whether the given string is arbitrary binary data. The attribute value MUST be base64, also supports
 // URL-safe encoding.
+// More info: https://tools.ietf.org/html/rfc7643#section-2.3.6
 func IsBase64(s string) bool {
 	if len(s) == 0 {
 		return true
@@ -231,4 +235,62 @@ func IsBase64(s string) bool {
 		return true
 	}
 	return false
+}
+
+// More info: https://tools.ietf.org/html/rfc7159#section-4
+// We need this extra indirection, otherwise there is a loop.
+//	object refers to
+//	member refers to
+//	object
+// 	etc...
+func object(p *ast.Parser) (*ast.Node, error) {
+	return p.Expect(op.And{
+		ws, '{', ws,
+		op.Optional(op.And{
+			member,
+			op.MinZero(op.And{ws, ',', ws, member}),
+		}),
+		ws, '}', ws,
+	})
+}
+
+func member(p *ast.Parser) (*ast.Node, error) {
+	return p.Expect(op.And{str, ws, ':', ws, op.Or{
+		f, n, t,
+		object,
+		array,
+		decimal, integer, str,
+	}})
+}
+
+// More info: https://tools.ietf.org/html/rfc7159#section-5
+func array(p *ast.Parser) (*ast.Node, error) {
+	return p.Expect(op.And{
+		ws, '[', ws,
+		op.Optional(op.And{
+			value,
+			op.MinZero(op.And{ws, ',', ws, value}),
+		}),
+		ws, ']', ws,
+	})
+}
+
+// About multi-valued attributes: https://tools.ietf.org/html/rfc7643#section-2.4
+// - primitive values
+// - objects
+// - NO arrays
+
+// More info: https://tools.ietf.org/html/rfc7159#section-3
+// value is a CUSTOM definition based on the JSON array format.
+func value(p *ast.Parser) (*ast.Node, error) {
+	return p.Expect(op.Or{f, n, t, object, decimal, integer, str})
+}
+
+var ws = op.MinZero(op.Or{0x20, 0x09, 0x0A, 0x0D})
+
+func IsObject(s string) bool {
+	if err := is(object, s); err != nil {
+		return false
+	}
+	return true
 }
