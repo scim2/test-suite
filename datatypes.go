@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-// This file is not necessary since Golang will do this for us.\
+// This file should not be necessary since Golang will do this for us.
 
-// is checks whether the given string (s) complies with the given parser rules (i).
-func is(i interface{}, s string) error {
+// is checks whether the given string complies with the given parser rules.
+func is(rule interface{}, s string) error {
 	p, err := ast.New([]byte(s))
 	if err != nil {
 		return err
 	}
-	if _, err := p.Expect(i); err != nil {
+	if _, err := p.Expect(rule); err != nil {
 		return err
 	}
 	// Check whether we parsed the whole string.

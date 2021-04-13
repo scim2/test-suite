@@ -8,7 +8,9 @@ import (
 
 func ExampleIsAttributeName() {
 	fmt.Println(IsAttributeName("attrName"))
+	fmt.Println(IsAttributeName("$ref"))
 	// Output:
+	// true
 	// true
 }
 

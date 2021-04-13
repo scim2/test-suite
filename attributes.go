@@ -19,7 +19,7 @@ var (
 	// nameChar = "$" / "-" / "_" / DIGIT / ALPHA
 	nameChar = op.Or{'$', '-', '_', digit, alpha}
 	// attrName = ALPHA *(nameChar)
-	attrName = op.And{alpha, op.MinZero(nameChar)}
+	attrName = op.And{op.Or{'$', alpha}, op.MinZero(nameChar)}
 )
 
 // IsAttributeName checks whether the given string is a valid attribute name.
