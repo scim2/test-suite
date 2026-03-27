@@ -4,6 +4,8 @@
 > Coverage is limited and many requirements are still untested. Expect significant
 > changes as additional iterations are done.
 
+[![Compliance report](website.png)](https://0x51.dev/scim/demo)
+
 Black-box compliance tests for SCIM 2.0 servers based on
 [RFC 7642](https://tools.ietf.org/html/rfc7642) (Definitions, Overview, Concepts, and Requirements),
 [RFC 7643](https://tools.ietf.org/html/rfc7643) (Core Schema), and
@@ -22,6 +24,7 @@ coverage.
 | `compliance/` | Go test files that exercise a SCIM server against the requirements |
 | `scim/` | Minimal SCIM HTTP client used by the tests |
 | `testserver/` | In-memory SCIM server for running the suite without an external target |
+| `cmd/website/` | Generates the interactive HTML compliance report |
 
 ## Running the tests
 
@@ -69,7 +72,11 @@ as required.
 ## Compliance report
 
 After each run a plain-text report is written (default: `compliance-report.txt`)
-containing:
+and a JSON report is generated alongside it. The JSON report can be used to
+produce an [interactive HTML report](https://0x51.dev/scim/demo) that displays
+RFC spec text side-by-side with requirement outcomes.
+
+Reports contain:
 
 - Summary counts per RFC 2119 level (MUST, SHOULD, MAY, etc.)
 - List of failures, warnings, passed, and untested requirements
