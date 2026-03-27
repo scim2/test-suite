@@ -1,0 +1,160 @@
+2.3.  Attribute Data Types
+
+   Attribute data types are derived from JSON [RFC7159].  The JSON
+   format defines a limited set of data types; hence, where appropriate,
+   alternate JSON representations derived from XML Schema [XML-Schema]
+   are defined below.  SCIM extensions SHOULD NOT introduce new data
+   types.
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 8]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   Table 1 maps the following SCIM data types to their corresponding
+   SCIM schema type and underlying JSON data type:
+
+   +-----------+-------------+-----------------------------------------+
+   | SCIM Data | SCIM Schema | JSON Type                               |
+   | Type      | "type"      |                                         |
+   +-----------+-------------+-----------------------------------------+
+   | String    | "string"    | String per Section 7 of [RFC7159]       |
+   |           |             |                                         |
+   | Boolean   | "boolean"   | Value per Section 3 of [RFC7159]        |
+   |           |             |                                         |
+   | Decimal   | "decimal"   | Number per Section 6 of [RFC7159]       |
+   |           |             |                                         |
+   | Integer   | "integer"   | Number per Section 6 of [RFC7159]       |
+   |           |             |                                         |
+   | DateTime  | "dateTime"  | String per Section 7 of [RFC7159]       |
+   |           |             |                                         |
+   | Binary    | "binary"    | Binary value base64 encoded per Section |
+   |           |             | 4 of [RFC4648], or with URL and         |
+   |           |             | filename safe alphabet URL per Section  |
+   |           |             | 5 of [RFC4648] that is passed as a JSON |
+   |           |             | string per Section 7 of [RFC7159]       |
+   |           |             |                                         |
+   | Reference | "reference" | String per Section 7 of [RFC7159]       |
+   |           |             |                                         |
+   | Complex   | "complex"   | Object per Section 4 of [RFC7159]       |
+   +-----------+-------------+-----------------------------------------+
+
+              Table 1: SCIM Data Type to JSON Representation
+
+2.3.1.  String
+
+   A sequence of zero or more Unicode characters encoded using UTF-8 as
+   per [RFC2277] and [RFC3629].  The JSON format is defined in Section 7
+   of [RFC7159].  An attribute with SCIM schema type "string" MAY
+   specify a required data format.  Additionally, when "canonicalValues"
+   is specified, service providers MAY restrict accepted values to the
+   specified values.
+
+2.3.2.  Boolean
+
+   The literal "true" or "false".  The JSON format is defined in
+   Section 3 of [RFC7159].  A boolean has no case sensitivity or
+   uniqueness.
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 9]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+2.3.3.  Decimal
+
+   A real number with at least one digit to the left and right of the
+   period.  The JSON format is defined in Section 6 of [RFC7159].  A
+   decimal has no case sensitivity.
+
+2.3.4.  Integer
+
+   A whole number with no fractional digits or decimal.  The JSON format
+   is defined in Section 6 of [RFC7159], with the additional constraint
+   that the value MUST NOT contain fractional or exponent parts.  An
+   integer has no case sensitivity.
+
+2.3.5.  DateTime
+
+   A DateTime value (e.g., 2008-01-23T04:56:22Z).  The attribute value
+   MUST be encoded as a valid xsd:dateTime as specified in Section 3.3.7
+   of [XML-Schema] and MUST include both a date and a time.  A date time
+   format has no case sensitivity or uniqueness.
+
+   Values represented in JSON format MUST conform to the XML constraints
+   above and are represented as a JSON string per Section 7 of
+   [RFC7159].
+
+2.3.6.  Binary
+
+   Arbitrary binary data.  The attribute value MUST be base64 encoded as
+   specified in Section 4 of [RFC4648].  In cases where a URL-safe
+   encoding is required, the attribute definition MAY specify that
+   base64 URL encoding be used as per Section 5 of [RFC4648].  Unless
+   otherwise specified in the attribute definition, trailing padding
+   characters MAY be omitted ("=").
+
+   In JSON representation, the encoded values are represented as a JSON
+   string per Section 7 of [RFC7159].  A binary is case exact and has no
+   uniqueness.
+
+2.3.7.  Reference
+
+   A URI for a resource.  A resource MAY be a SCIM resource, an external
+   link to a resource (e.g., a photo), or an identifier such as a URN.
+   The value MUST be the absolute or relative URI of the target
+   resource.  Relative URIs should be resolved as specified in
+   Section 5.2 of [RFC3986].  However, the base URI for relative URI
+   resolution MUST include all URI components and path segments up to,
+   but not including, the Endpoint URI (the SCIM service provider root
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 10]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   endpoint); e.g., the base URI for a request to
+   "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
+   would be "https://example.com/v2/", and the relative URI for this
+   resource would be "Users/2819c223-7f76-453a-919d-413861904646".
+
+   In JSON representation, the URI value is represented as a JSON string
+   per Section 7 of [RFC7159].  A reference is case exact.  A reference
+   has a "referenceTypes" attribute that indicates what types of
+   resources may be linked, as per Section 7 of this document.
+
+   A reference URI MUST be to an HTTP-addressable resource.  An HTTP
+   client performing a GET operation on a reference URI MUST receive the
+   target resource or an appropriate HTTP response code.  A SCIM service
+   provider MAY choose to enforce referential integrity for reference
+   types referring to SCIM resources.
+
+   By convention, a reference is commonly represented as a "$ref"
+   sub-attribute in complex or multi-valued attributes; however, this is
+   OPTIONAL.
+
+2.3.8.  Complex
+
+   A singular or multi-valued attribute whose value is a composition of
+   one or more simple attributes.  The JSON format is defined in
+   Section 4 of [RFC7159].  The order of the component attributes is not
+   significant.  Servers and clients MUST NOT require or expect
+   attributes to be in any specific order when an object is either
+   generated or analyzed.  A complex attribute has no uniqueness or case
+   sensitivity.  A complex attribute MUST NOT contain sub-attributes
+   that have sub-attributes (i.e., that are complex).
+

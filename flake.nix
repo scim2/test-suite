@@ -34,6 +34,22 @@
             echo "--- tidy ---"
             go mod tidy
           '';
+          website = pkgs.writeShellScriptBin "website" ''
+            set -euo pipefail
+            version="$(git describe --tags --always 2>/dev/null || git rev-parse --short HEAD)"
+            if ! git diff --quiet HEAD 2>/dev/null; then
+              version="''${version}*"
+            fi
+            commit="$(git rev-parse HEAD 2>/dev/null || true)"
+            go run ./cmd/website/ \
+              -version "$version" \
+              -commit "$commit" \
+              -template ./cmd/website/template.gohtml \
+              -report ./compliance/compliance-report.json \
+              -out ./compliance/compliance-report.html \
+              -watch \
+              "$@"
+          '';
           compliance = pkgs.writeShellScriptBin "compliance" ''
             set -euo pipefail
             go test -v -count=1 ./compliance/ \
@@ -58,6 +74,7 @@
               pkgs.golangci-lint
               goarrange
               lint
+              website
               compliance
             ];
           };

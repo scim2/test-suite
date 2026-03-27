@@ -1,0 +1,10 @@
+2.5.  Unassigned and Null Values
+
+   Unassigned attributes, the null value, or an empty array (in the case
+   of a multi-valued attribute) SHALL be considered to be equivalent in
+   "state".  Assigning an attribute with the value "null" or an empty
+   array (in the case of multi-valued attributes) has the effect of
+   making the attribute "unassigned".  When a resource is expressed in
+   JSON format, unassigned attributes, although they are defined in
+   schema, MAY be omitted for compactness.
+

@@ -1,0 +1,112 @@
+9.  Security Considerations
+
+9.1.  Protocol
+
+   SCIM data is intended to be exchanged using the SCIM protocol.  It is
+   important when handling data to implement the security considerations
+   outlined in Section 7 of [RFC7644].
+
+9.2.  Passwords and Other Sensitive Security Data
+
+   Passwords and other attributes related to security credentials are of
+   an extremely sensitive nature and require special handling when
+   transmitted or stored.  While the SCIM protocol uses cleartext
+   passwords for value assignment and equality-testing purposes,
+   password values MUST NOT be stored in cleartext form.
+
+   Administrators should undertake industry best practices to protect
+   the storage of credentials and in particular SHOULD follow
+   recommendations outlined in Section 5.1.4.1 of [RFC6819].  These
+   requirements include, but are not limited to, the following:
+
+   o  Provide injection attack countermeasures (e.g., by validating all
+      inputs and parameters);
+
+   o  Credentials should not be stored in cleartext form;
+
+   o  Store credentials using an encrypted protection mechanism (e.g.,
+      hashing); and
+
+   o  Where possible, avoid passwords as the sole form of
+      authentication, and consider using credentials that are based on
+      asymmetric cryptography.
+
+9.3.  Privacy
+
+   The SCIM core schema defines attributes that are sensitive and may be
+   considered personally identifying information (PII).  These privacy
+   considerations should be considered for extensions as well as the
+   schema defined in this specification.
+
+   For the purposes of this specification, PII is defined as any
+   attribute that may be used as a unique key to identify a person
+   (e.g., "User").  Since other information may be used in combination
+   to identify an individual, all attributes in SCIM are considered
+   "sensitive" personal information.  Consult regional jurisdictions to
+   see if there are special considerations for the handling of personal
+   information (e.g., PII).
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 92]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   Information should be shared on an as-needed basis.  A SCIM client
+   should limit information to what it believes a service provider
+   requires, and a SCIM service provider should only accept information
+   it needs.  Clients and service providers should take into
+   consideration that personal information is being conveyed across
+   technical (e.g., protocol and applications), administrative (e.g.,
+   organizational, corporate), and jurisdictional boundaries.  In
+   particular, information security and privacy must be considered.
+
+   Security service level agreements for the handling of these
+   attributes are beyond the scope of this document but are to be
+   carefully considered by implementers and deploying organizations.
+
+   Please see the Privacy Considerations section of [RFC7644] for more
+   protocol-specific considerations regarding the handling of SCIM
+   information.
+
+   SCIM defines attributes such as "id", "externalId", and SCIM resource
+   URIs, which cause new PII to be generated; this information is
+   important to the way that the SCIM protocol identifies and locates
+   resources.  Where possible, it is suggested that service providers
+   take the following remediations:
+
+   o  Where possible, assign and bind identifiers to specific tenants
+      and/or clients.  When multiple tenants are able to reference the
+      same resource, they should do so via separate identifiers (id or
+      externalId).  This ensures that separate domains linked to the
+      same information cannot perform identifier correlation.
+
+   o  In the case of "externalId", if multiple values are supported, use
+      access control to restrict access to the client domain that
+      assigned the "externalId" value.
+
+   o  Ensure that access to data is appropriately restricted to
+      authorized parties with a "need to know".
+
+   o  When persisted, ensure that the appropriate protection mechanisms
+      are in place to restrict access by unauthorized parties, including
+      administrators or parties with access to backup data.
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 93]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+

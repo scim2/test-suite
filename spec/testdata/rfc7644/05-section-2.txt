@@ -1,0 +1,124 @@
+2.  Authentication and Authorization
+
+   The SCIM protocol is based upon HTTP and does not itself define a
+   SCIM-specific scheme for authentication and authorization.  SCIM
+   depends on the use of Transport Layer Security (TLS) and/or standard
+   HTTP authentication and authorization schemes as per [RFC7235].  For
+   example, the following methodologies could be used, among others:
+
+   TLS Client Authentication
+      The SCIM service provider MAY request TLS client authentication
+      (also known as mutual authentication).  See Section 7.3 of
+      [RFC5246].
+
+   HOBA Authentication
+      HTTP Origin-Bound Authentication (HOBA) is a variation on TLS
+      client authentication and uses a digital-signature-based design
+      for an HTTP authentication method (see [RFC7486]).  The design can
+      also be used in JavaScript-based authentication embedded in HTML.
+      HOBA is an alternative to HTTP authentication schemes that require
+      passwords and therefore avoids all problems related to passwords,
+      such as leakage of server-side password databases.
+
+   Bearer Tokens
+      Bearer tokens [RFC6750] MAY be used when combined with TLS and a
+      token framework such as OAuth 2.0 [RFC6749].  Tokens that are
+      issued based on weak or no authentication of authorizing users
+      and/or OAuth clients SHOULD NOT be used, unless, for example, they
+      are being used as single-use tokens to permit one-time requests
+      such as anonymous registration (see Section 3.3).  For security
+      considerations regarding the use of bearer tokens in SCIM, see
+      Section 7.4.  While bearer tokens most often represent an
+      authorization, it is assumed that the authorization was based upon
+      a successful authentication of the SCIM client.  Accordingly, the
+      SCIM service provider must have a method for validating, parsing,
+      and/or "introspecting" the bearer token for the relevant
+      authentication and authorization information.  The method for this
+      is assumed to be defined by the token-issuing system and is beyond
+      the scope of this specification.
+
+   PoP Tokens
+      A proof-of-possession (PoP) token demonstrates that the presenter
+      of the token possesses a particular key and that the recipient can
+      cryptographically confirm proof of possession of the key by the
+      presenter.  This property is sometimes also described as the
+      presenter being a holder of the key.  See [OAuth-PoP-Arch] for an
+      example of such a token and its use.
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 5]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Cookies
+      JavaScript clients MAY assert HTTP cookies over TLS that contain
+      an authentication state that is understood by the SCIM service
+      provider (see [RFC6265]).  An example of this is scenarios where
+      web-form authentication has taken place with the user and HTTP
+      cookies were set representing the authentication state.  For the
+      purposes of SCIM, the security considerations in Section 7.4
+      apply.
+
+   Basic Authentication
+      Usage of basic authentication should be avoided, due to its use of
+      a single factor that is based upon a relatively static, symmetric
+      secret.  Implementers SHOULD combine the use of basic
+      authentication with other factors.  The security considerations of
+      HTTP Basic are well documented in [HTTP-BASIC-AUTH]; therefore,
+      implementers are encouraged to use stronger authentication
+      methods.  Designating the specific methods of authentication and
+      authorization is out of scope for SCIM; however, this information
+      is provided as a resource to implementers.
+
+   As per Section 4.1 of [RFC7235], a SCIM service provider SHALL
+   indicate supported HTTP authentication schemes via the
+   "WWW-Authenticate" header.
+
+   Regardless of methodology, the SCIM service provider MUST be able to
+   map the authenticated client to an access control policy in order to
+   determine the client's authorization to retrieve and update SCIM
+   resources.  For example, while a browser session may have been
+   established via HTTP cookie or TLS client authentication, the unique
+   client MUST be mapped to a security subject (e.g., User).  The
+   authorization model and the process by which this is done are beyond
+   the scope of this specification.
+
+   When processing requests, the service provider SHOULD consider the
+   subject performing the request and whether or not the action is
+   appropriate given the subject and the resource affected by the
+   request.  The subject performing the request is usually determined
+   directly or indirectly from the "Authorization" header present in the
+   request.  For example, a subject MAY be permitted to retrieve and
+   update their own "User" resource but will normally have restricted
+   ability to access resources associated with other Users.  In other
+   cases, the SCIM service provider might only grant access to a
+   subject's own associated "User" resource (e.g., for the purpose of
+   updating personal contact attributes).
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 6]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   For illustrative purposes only, SCIM protocol examples show an
+   OAuth 2.0 bearer token value [RFC6750] in the authorization
+   header, e.g.,
+
+   GET /Users/2819c223-7f76-453a-919d-413861904646 HTTP/1.1
+   Host: example.com
+   Authorization: Bearer h480djs93hd8
+
+   This is not intended to imply that bearer tokens are preferred.
+   However, the use of bearer tokens in the specification does reflect
+   common implementation practice.
+

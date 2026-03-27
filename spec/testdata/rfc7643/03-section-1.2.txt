@@ -1,0 +1,76 @@
+1.2.  Definitions
+
+   Service Provider
+      An HTTP web application that provides identity information via the
+      SCIM protocol.
+
+   Client
+      A website or application that uses the SCIM protocol to manage
+      identity data maintained by the service provider.  The client
+      initiates SCIM HTTP requests to a target service provider.
+
+   Provisioning Domain
+      A provisioning domain is an administrative domain external to the
+      domain of a service provider for legal or technical reasons.  For
+      example, a SCIM client in an enterprise (provisioning client)
+      communicates with a SCIM service provider that is owned or
+      controlled by a different legal entity.
+
+   Resource Type
+      A type of a resource that is managed by a service provider.  The
+      resource type defines the resource name, endpoint URL, schemas,
+      and other metadata that indicate where a resource is managed and
+      how it is composed, e.g., "User" or "Group".
+
+   Resource
+      An artifact that is managed by a service provider and that
+      contains one or more attributes, e.g., "User" or "Group".
+
+   Endpoint
+      An endpoint for a service provider is a defined base path relative
+      to the service provider's Base URI (see Section 1.3 of [RFC7644]),
+      over which SCIM operations may be performed against SCIM
+      resources.  For example, assuming that the service provider's Base
+      URI is "https://example.com/", "User" resources may be accessed at
+      the "https://example.com/Users" or "https://example.com/v2/Users"
+      endpoint (see Section 3.13 of [RFC7644] for details regarding
+      protocol versioning, e.g., 'v2').  Service provider schemas MAY be
+      returned from the "/Schemas" endpoint.
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 5]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   Schema
+      A collection of attribute definitions that describe the contents
+      of an entire or partial resource, e.g.,
+      "urn:ietf:params:scim:schemas:core:2.0:User".  The attribute
+      definitions specify the name of the attribute, and metadata such
+      as type (e.g., string, binary), cardinality (singular, multi,
+      complex), mutability, and returnability.
+
+   Singular Attribute
+      A resource attribute that contains 0..1 values, e.g.,
+      "displayName".
+
+   Multi-valued Attribute
+      A resource attribute that contains 0..n values, e.g., "emails".
+
+   Simple Attribute
+      A singular or multi-valued attribute whose value is a primitive,
+      e.g., "String".  A simple attribute MUST NOT contain
+      sub-attributes.
+
+   Complex Attribute
+      A singular or multi-valued attribute whose value is a composition
+      of one or more simple attributes; e.g., "addresses" has the
+      sub-attributes "streetAddress", "locality", "postalCode", and
+      "country".
+
+   Sub-Attribute
+      A simple attribute that is contained within a complex attribute.
+

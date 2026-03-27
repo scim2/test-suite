@@ -1,0 +1,13 @@
+1.  Introduction and Overview
+
+   The SCIM protocol is an application-level HTTP-based protocol for
+   provisioning and managing identity data on the web and in
+   cross-domain environments such as enterprise-to-cloud service
+   providers or inter-cloud scenarios.  The protocol supports creation,
+   modification, retrieval, and discovery of core identity resources
+   such as Users and Groups, as well as custom resources and resource
+   extensions.
+
+   The definition of resources, attributes, and overall schema are
+   defined in the SCIM Core Schema document [RFC7643].
+

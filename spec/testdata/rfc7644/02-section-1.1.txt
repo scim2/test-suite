@@ -1,0 +1,14 @@
+1.1.  Intended Audience
+
+   This document is intended to serve as a guide to SCIM protocol usage
+   for both SCIM HTTP service providers and HTTP clients who may
+   provision information to service providers or retrieve information
+   from them.
+
+
+
+Hunt, et al.                 Standards Track                    [Page 3]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

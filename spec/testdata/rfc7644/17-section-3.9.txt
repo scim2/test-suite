@@ -1,0 +1,76 @@
+3.9.  Additional Operation Response Parameters
+
+   For any SCIM operation where a resource representation is returned
+   (e.g., HTTP GET), the attributes returned are defined as the minimum
+   attribute set plus default attribute set.  The minimum set is
+   composed of those attributes that have their "returned"
+   characteristic set to "always" (see Section 2.2 of [RFC7643]).  The
+   default attribute set is composed of those attributes that have the
+   "returned" characteristic set to "default".
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 64]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Clients MAY request a partial resource representation on any
+   operation that returns a resource within the response by specifying
+   either of the mutually exclusive URL query parameters "attributes" or
+   "excludedAttributes", as follows:
+
+   attributes  When specified, the default list of attributes SHALL be
+           overridden, and each resource returned MUST contain the
+           minimum set of resource attributes and any attributes or
+           sub-attributes explicitly requested by the "attributes"
+           parameter.  The query parameter attributes value is a
+           comma-separated list of resource attribute names in standard
+           attribute notation (Section 3.10) form (e.g., userName, name,
+           emails).
+
+   excludedAttributes  When specified, each resource returned MUST
+           contain the minimum set of resource attributes.
+           Additionally, the default set of attributes minus those
+           attributes listed in "excludedAttributes" is returned.  The
+           query parameter attributes value is a comma-separated list of
+           resource attribute names in standard attribute notation
+           (Section 3.10) form (e.g., userName, name, emails).
+
+   GET /Users/2819c223-7f76-453a-919d-413861904646?attributes=userName
+   Host: example.com
+   Accept: application/scim+json
+   Authorization: Bearer h480djs93hd8
+
+   The following response is returned:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+   Location:
+    https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
+   ETag: W/"a330bc54f0671c9"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "userName":"bjensen"
+   }
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 65]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

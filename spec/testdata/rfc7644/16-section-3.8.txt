@@ -1,0 +1,36 @@
+3.8.  Data Input/Output Formats
+
+   Servers MUST accept requests and be able to return JSON-structured
+   responses using UTF-8 encoding [RFC3629].  UTF-8 SHALL be the default
+   encoding format.  Other media types MAY be supported by service
+   providers but are beyond the scope of this specification.
+
+   Clients using other encodings MUST specify the format in which the
+   data is submitted via an HTTP "Content-Type" header as specified in
+   Section 3.1.1.5 of [RFC7231] and MAY specify the desired response
+   data format via an HTTP "Accept" header (Section 5.3.2 of [RFC7231]),
+   e.g., "Accept: application/scim+json", or via URI suffix:
+
+   GET /Users/2819c223-7f76-453a-919d-413861904646.scim
+   Host: example.com
+
+   Service providers MUST support the "Accept" header
+   "Accept: application/scim+json" and SHOULD support the header
+   "Accept: application/json", both of which specify JSON documents
+   conforming to [RFC7159].  The format defaults to
+   "application/scim+json" if no format is specified.
+
+   Singular attributes are encoded as string name-value pairs in
+   JSON, e.g.,
+
+   "attribute": "value"
+
+   Multi-valued attributes in JSON are encoded as arrays, e.g.,
+
+   "attributes": [ "value1", "value2" ]
+
+   Elements with nested elements are represented as objects in
+   JSON, e.g.,
+
+   "attribute": { "subattribute1": "value1", "subattribute2": "value2" }
+

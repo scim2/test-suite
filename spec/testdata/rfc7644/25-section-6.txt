@@ -1,0 +1,108 @@
+6.  Multi-Tenancy
+
+   A single service provider may expose the SCIM protocol to multiple
+   clients.  Depending on the nature of the service, the clients may
+   have authority to access and alter resources initially created by
+   other clients.  Alternatively, clients may expect to access disjoint
+   sets of resources and may expect that their resources are
+   inaccessible to other clients.  These scenarios are called
+   "multi-tenancy", where each client is understood to be or represent
+   a "tenant" of the service provider.  Clients may also be
+   multi-tenanted.
+
+   The following common cases may occur:
+
+   1.  All clients share all resources (no tenancy).
+
+   2.  Each single client creates and accesses a private subset of
+       resources (1 client:1 Tenant).
+
+   3.  Sets of clients share sets of resources (M clients:1 Tenant).
+
+   4.  One client can create and access several private subsets of
+       resources (1 client:M Tenants).
+
+   Service providers may implement any subset of the above cases.
+
+   Multi-tenancy is OPTIONAL.  The SCIM protocol does not define a
+   scheme for multi-tenancy.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 76]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The SCIM protocol does not prescribe the mechanisms whereby clients
+   and service providers interact for the following:
+
+   o  Registering or provisioning Tenants
+
+   o  Associating a subset of clients with a subset of the Tenants
+
+   o  Indicating which tenant is associated with the data in a request
+      or response, or indicating which Tenant is the subject of a query
+
+6.1.  Associating Clients to Tenants
+
+   The service provider MAY use one of the authentication mechanisms
+   discussed in Section 2 to determine the identity of the client and
+   thus infer the associated Tenant.
+
+   For implementations where a client is associated with more than one
+   Tenant, the service provider MAY use one of the three methods below
+   for explicit specification of the Tenant.
+
+   If any of these methods of allowing the client to explicitly specify
+   the Tenant are employed, the service provider should ensure that
+   access controls are in place to prevent or allow cross-tenant use
+   cases.
+
+   The service provider should consider precedence in cases where a
+   client may explicitly specify a Tenant while being implicitly
+   associated with a different Tenant.
+
+   In all of these methods, the {tenant_id} is a unique identifier for
+   the Tenant as defined by the service provider.
+
+   o  A URL prefix: "https://www.example.com/Tenants/{tenant_id}/v2/
+      Users".
+
+   o  A sub-domain: "https://{tenant_id}.example.com/v2/Groups".
+
+   o  An HTTP header: The service provider may recognize a {tenant_id}
+      provided by the client in an HTTP header as the indicator of the
+      desired target Tenant.
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 77]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+6.2.  SCIM Identifiers with Multiple Tenants
+
+   Considerations for a multi-tenant implementation:
+
+   o  The service provider may choose to implement SCIM ids that are
+      unique across all resources for all Tenants, but this is not
+      required.
+
+   o  The externalId, defined by the client, is required to be unique
+      ONLY within the resources associated with the associated Tenant.
+

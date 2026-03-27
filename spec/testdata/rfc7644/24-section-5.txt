@@ -1,0 +1,15 @@
+5.  Preparation and Comparison of Internationalized Strings
+
+   To increase the likelihood that the input and comparison of usernames
+   and passwords will work in ways that make sense for typical users
+   throughout the world, there are rules for preparing, enforcing, and
+   comparing internationalized strings that represent usernames and
+   passwords.  Before comparing or evaluating the uniqueness of a
+   "userName" or "password" attribute, service providers MUST use the
+   preparation, enforcement, and comparison of internationalized strings
+   (PRECIS) preparation and comparison rules described in Sections 3 and
+   4, respectively, of [RFC7613], which is based on the PRECIS framework
+   specification [RFC7564].  See Section 3.4 of [RFC7613] for discussion
+   on "Case Mapping vs. Case Preparation" regarding "userName"
+   attributes.
+

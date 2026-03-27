@@ -1,0 +1,147 @@
+
+
+
+
+
+
+Internet Engineering Task Force (IETF)                      P. Hunt, Ed.
+Request for Comments: 7643                                        Oracle
+Category: Standards Track                                     K. Grizzle
+ISSN: 2070-1721                                                SailPoint
+                                                           E. Wahlstroem
+                                                        Nexus Technology
+                                                            C. Mortimore
+                                                              Salesforce
+                                                          September 2015
+
+
+        System for Cross-domain Identity Management: Core Schema
+
+Abstract
+
+   The System for Cross-domain Identity Management (SCIM) specifications
+   are designed to make identity management in cloud-based applications
+   and services easier.  The specification suite builds upon experience
+   with existing schemas and deployments, placing specific emphasis on
+   simplicity of development and integration, while applying existing
+   authentication, authorization, and privacy models.  Its intent is to
+   reduce the cost and complexity of user management operations by
+   providing a common user schema and extension model as well as binding
+   documents to provide patterns for exchanging this schema using HTTP.
+
+   This document provides a platform-neutral schema and extension model
+   for representing users and groups and other resource types in JSON
+   format.  This schema is intended for exchange and use with cloud
+   service providers.
+
+Status of This Memo
+
+   This is an Internet Standards Track document.
+
+   This document is a product of the Internet Engineering Task Force
+   (IETF).  It represents the consensus of the IETF community.  It has
+   received public review and has been approved for publication by the
+   Internet Engineering Steering Group (IESG).  Further information on
+   Internet Standards is available in Section 2 of RFC 5741.
+
+   Information about the current status of this document, any errata,
+   and how to provide feedback on it may be obtained at
+   http://www.rfc-editor.org/info/rfc7643.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 1]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+Copyright Notice
+
+   Copyright (c) 2015 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (http://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+Table of Contents
+
+   1. Introduction and Overview .......................................3
+      1.1. Requirements Notation and Conventions ......................4
+      1.2. Definitions ................................................5
+   2. SCIM Schema .....................................................6
+      2.1. Attributes .................................................7
+      2.2. Attribute Characteristics ..................................8
+      2.3. Attribute Data Types .......................................8
+           2.3.1. String ..............................................9
+           2.3.2. Boolean .............................................9
+           2.3.3. Decimal ............................................10
+           2.3.4. Integer ............................................10
+           2.3.5. DateTime ...........................................10
+           2.3.6. Binary .............................................10
+           2.3.7. Reference ..........................................10
+           2.3.8. Complex ............................................11
+      2.4. Multi-Valued Attributes ...................................11
+      2.5. Unassigned and Null Values ................................13
+   3. SCIM Resources .................................................13
+      3.1. Common Attributes .........................................16
+      3.2. Defining New Resource Types ...............................18
+      3.3. Attribute Extensions to Resources .........................18
+   4. SCIM Core Resources and Extensions .............................19
+      4.1. "User" Resource Schema ....................................19
+           4.1.1. Singular Attributes ................................19
+           4.1.2. Multi-Valued Attributes ............................23
+      4.2. "Group" Resource Schema ...................................25
+      4.3. Enterprise User Schema Extension ..........................26
+   5. Service Provider Configuration Schema ..........................27
+   6. ResourceType Schema ............................................29
+   7. Schema Definition ..............................................30
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 2]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   8. JSON Representation ............................................34
+      8.1. Minimal User Representation ...............................34
+      8.2. Full User Representation ..................................35
+      8.3. Enterprise User Extension Representation ..................39
+      8.4. Group Representation ......................................43
+      8.5. Service Provider Configuration Representation .............44
+      8.6. Resource Type Representation ..............................46
+      8.7. Schema Representation .....................................47
+           8.7.1. Resource Schema Representation .....................47
+           8.7.2. Service Provider Schema Representation .............74
+   9. Security Considerations ........................................92
+      9.1. Protocol ..................................................92
+      9.2. Passwords and Other Sensitive Security Data ...............92
+      9.3. Privacy ...................................................92
+   10. IANA Considerations ...........................................94
+      10.1. Registration of SCIM URN Sub-namespace and SCIM
+            Registry .................................................94
+      10.2. URN Sub-namespace for SCIM ...............................94
+           10.2.1. Specification Template ............................95
+      10.3. Registering SCIM Schemas .................................97
+           10.3.1. Registration Procedure ............................97
+           10.3.2. Schema Registration Template ......................98
+      10.4. Initial SCIM Schema Registry .............................99
+   11. References ...................................................100
+      11.1. Normative References ....................................100
+      11.2. Informative References ..................................101
+   Acknowledgements .................................................103
+   Authors' Addresses ...............................................104
+

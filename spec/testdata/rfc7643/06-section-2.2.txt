@@ -1,0 +1,39 @@
+2.2.  Attribute Characteristics
+
+   All attributes have a set of characteristics that describe their type
+   and handling by a service provider; full definitions may be found in
+   Section 7.  The characteristics include:
+
+   o  "required",
+
+   o  "canonicalValues",
+
+   o  "caseExact",
+
+   o  "mutability",
+
+   o  "returned",
+
+   o  "uniqueness", and
+
+   o  "referenceTypes".
+
+   If not otherwise stated in Section 7, SCIM attributes have the
+   following characteristics:
+
+   o  "required" is "false" (i.e., not REQUIRED),
+
+   o  "canonicalValues": none assigned (for example, the "type"
+      sub-attribute as described in Section 2.4),
+
+   o  "caseExact" is "false" (i.e., case-insensitive),
+
+   o  "mutability" is "readWrite" (i.e., modifiable),
+
+   o  "returned" is "default" (the attribute value is returned by
+      default),
+
+   o  "uniqueness" is "none" (has no uniqueness enforced), and
+
+   o  "type" is "string" (Section 2.3.1).
+

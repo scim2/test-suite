@@ -1,0 +1,107 @@
+3.2.  SCIM Endpoints and HTTP Methods
+
+   The SCIM protocol specifies well-known endpoints and HTTP methods for
+   managing resources defined in the SCIM Core Schema document
+   ([RFC7643]); i.e., "User" and "Group" resources correspond to
+   "/Users" and "/Groups", respectively.  Service providers that support
+   extended resources SHOULD define resource endpoints using the
+   convention of pluralizing the resource name defined in the extended
+   schema, by appending an 's'.  Given that there are cases where
+   resource pluralization is ambiguous, e.g., a resource named "Person"
+   is legitimately "Persons" and "People", clients SHOULD discover
+   resource endpoints via the "/ResourceTypes" endpoint.
+
+   HTTP   SCIM Usage
+   Method
+   ------ --------------------------------------------------------------
+   GET    Retrieves one or more complete or partial resources.
+
+   POST   Depending on the endpoint, creates new resources, creates a
+          search request, or MAY be used to bulk-modify resources.
+
+   PUT    Modifies a resource by replacing existing attributes with a
+          specified set of replacement attributes (replace).  PUT
+          MUST NOT be used to create new resources.
+
+   PATCH  Modifies a resource with a set of client-specified changes
+          (partial update).
+
+   DELETE Deletes a resource.
+
+                        Table 1: SCIM HTTP Methods
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 9]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Resource Endpoint         Operations             Description
+   -------- ---------------- ---------------------- --------------------
+   User     /Users           GET (Section 3.4.1),   Retrieve, add,
+                             POST (Section 3.3),    modify Users.
+                             PUT (Section 3.5.1),
+                             PATCH (Section 3.5.2),
+                             DELETE (Section 3.6)
+
+   Group    /Groups          GET (Section 3.4.1),   Retrieve, add,
+                             POST (Section 3.3),    modify Groups.
+                             PUT (Section 3.5.1),
+                             PATCH (Section 3.5.2),
+                             DELETE (Section 3.6)
+
+   Self     /Me              GET, POST, PUT, PATCH, Alias for operations
+                             DELETE (Section 3.11)  against a resource
+                                                    mapped to an
+                                                    authenticated
+                                                    subject (e.g.,
+                                                    User).
+
+   Service  /ServiceProvider GET (Section 4)        Retrieve service
+   provider Config                                  provider's
+   config.                                          configuration.
+
+   Resource /ResourceTypes   GET (Section 4)        Retrieve supported
+   type                                             resource types.
+
+   Schema   /Schemas         GET (Section 4)        Retrieve one or more
+                                                    supported schemas.
+
+   Bulk     /Bulk            POST (Section 3.7)     Bulk updates to one
+                                                    or more resources.
+
+   Search   [prefix]/.search POST (Section 3.4.3)   Search from system
+                                                    root or within a
+                                                    resource endpoint
+                                                    for one or more
+                                                    resource types using
+                                                    POST.
+
+                        Table 2: Defined Endpoints
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 10]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   All requests to the service provider are made via HTTP methods as per
+   Section 4.3 of [RFC7231] on a URL derived from the Base URL.
+   Responses are returned in the body of the HTTP response, formatted as
+   JSON.  Error status codes SHOULD be transmitted via the HTTP status
+   code of the response (if possible) and SHOULD also be specified in
+   the body of the response (see Section 3.12).
+

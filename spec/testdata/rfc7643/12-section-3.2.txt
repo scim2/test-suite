@@ -1,0 +1,9 @@
+3.2.  Defining New Resource Types
+
+   SCIM may be extended to define new classes of resources by defining a
+   resource type.  Each resource type defines the name, endpoint, base
+   schema (the attributes), and any schema extensions registered for use
+   with the resource type.  In order to offer new types of resources, a
+   service provider defines the new resource type as specified in
+   Section 6 and defines a schema representation (see Section 8.7).
+

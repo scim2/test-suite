@@ -1,0 +1,49 @@
+4.3.  Enterprise User Schema Extension
+
+   The following SCIM extension defines attributes commonly used in
+   representing users that belong to, or act on behalf of, a business or
+   enterprise.  The enterprise User extension is identified using the
+   following schema URI:
+   "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User".
+
+   The following singular attributes are defined:
+
+   employeeNumber
+      A string identifier, typically numeric or alphanumeric, assigned
+      to a person, typically based on order of hire or association with
+      an organization.
+
+   costCenter
+      Identifies the name of a cost center.
+
+   organization
+      Identifies the name of an organization.
+
+   division
+      Identifies the name of a division.
+
+   department
+      Identifies the name of a department.
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 26]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   manager
+      The user's manager.  A complex type that optionally allows service
+      providers to represent organizational hierarchy by referencing the
+      "id" attribute of another User.
+
+      value  The "id" of the SCIM resource representing the user's
+         manager.  RECOMMENDED.
+
+      $ref  The URI of the SCIM resource representing the User's
+         manager.  RECOMMENDED.
+
+      displayName  The displayName of the user's manager.  This
+         attribute is OPTIONAL, and mutability is "readOnly".
+

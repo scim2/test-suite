@@ -1,0 +1,58 @@
+6.  ResourceType Schema
+
+   The "ResourceType" schema specifies the metadata about a resource
+   type.  Resource type resources are READ-ONLY and identified using the
+   following schema URI:
+   "urn:ietf:params:scim:schemas:core:2.0:ResourceType".  Unlike other
+   core resources, all attributes are REQUIRED unless otherwise
+   specified.  The "id" attribute is not required for the resource type
+   resource.
+
+   The following singular attributes are defined:
+
+   id
+      The resource type's server unique id.  This is often the same
+      value as the "name" attribute.  OPTIONAL.
+
+   name
+      The resource type name.  When applicable, service providers MUST
+      specify the name, e.g., "User" or "Group".  This name is
+      referenced by the "meta.resourceType" attribute in all resources.
+      REQUIRED.
+
+
+
+Hunt, et al.                 Standards Track                   [Page 29]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   description
+      The resource type's human-readable description.  When applicable,
+      service providers MUST specify the description.  OPTIONAL.
+
+   endpoint
+      The resource type's HTTP-addressable endpoint relative to the Base
+      URL of the service provider, e.g., "Users".  REQUIRED.
+
+   schema
+      The resource type's primary/base schema URI, e.g.,
+      "urn:ietf:params:scim:schemas:core:2.0:User".  This MUST be equal
+      to the "id" attribute of the associated "Schema" resource.
+      REQUIRED.
+
+   schemaExtensions
+      A list of URIs of the resource type's schema extensions.
+      OPTIONAL.
+
+      schema  The URI of an extended schema, e.g., "urn:edu:2.0:Staff".
+         This MUST be equal to the "id" attribute of a "Schema"
+         resource.  REQUIRED.
+
+      required  A Boolean value that specifies whether or not the schema
+         extension is required for the resource type.  If true, a
+         resource of this type MUST include this schema extension and
+         also include any attributes declared as required in this schema
+         extension.  If false, a resource of this type MAY omit this
+         schema extension.  REQUIRED.
+

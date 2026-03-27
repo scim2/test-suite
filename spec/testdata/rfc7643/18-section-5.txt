@@ -1,0 +1,125 @@
+5.  Service Provider Configuration Schema
+
+   SCIM provides a schema for representing the service provider's
+   configuration, identified using the following schema URI:
+   "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig".
+
+   The service provider configuration resource enables a service
+   provider to discover SCIM specification features in a standardized
+   form as well as provide additional implementation details to clients.
+   All attributes have a mutability of "readOnly".  Unlike other core
+   resources, the "id" attribute is not required for the service
+   provider configuration resource.
+
+   The following singular attributes are defined in addition to the
+   common attributes defined in the core schema:
+
+   documentationUri
+      An HTTP-addressable URL pointing to the service provider's
+      human-consumable help documentation.  OPTIONAL.
+
+   patch
+      A complex type that specifies PATCH configuration options.
+      REQUIRED.  See Section 3.5.2 of [RFC7644].
+
+      supported  A Boolean value specifying whether or not the operation
+         is supported.  REQUIRED.
+
+   bulk
+      A complex type that specifies bulk configuration options.  See
+      Section 3.7 of [RFC7644].  REQUIRED.
+
+      supported  A Boolean value specifying whether or not the operation
+         is supported.  REQUIRED.
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 27]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+      maxOperations  An integer value specifying the maximum number of
+         operations.  REQUIRED.
+
+      maxPayloadSize  An integer value specifying the maximum payload
+         size in bytes.  REQUIRED.
+
+   filter
+      A complex type that specifies FILTER options.  REQUIRED.  See
+      Section 3.4.2.2 of [RFC7644].
+
+      supported  A Boolean value specifying whether or not the operation
+         is supported.  REQUIRED.
+
+      maxResults  An integer value specifying the maximum number of
+         resources returned in a response.  REQUIRED.
+
+   changePassword
+      A complex type that specifies configuration options related to
+      changing a password.  REQUIRED.
+
+      supported  A Boolean value specifying whether or not the operation
+         is supported.  REQUIRED.
+
+   sort
+      A complex type that specifies Sort configuration options.
+      REQUIRED.
+
+      supported  A Boolean value specifying whether or not sorting is
+         supported.  REQUIRED.
+
+   etag
+      A complex type that specifies ETag configuration options.
+      REQUIRED.
+
+      supported  A Boolean value specifying whether or not the operation
+         is supported.  REQUIRED.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 28]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   The following multi-valued attribute is defined in addition to the
+   common attributes defined in the core schema:
+
+   authenticationSchemes
+      A multi-valued complex type that specifies supported
+      authentication scheme properties.  To enable seamless discovery of
+      configurations, the service provider SHOULD, with the appropriate
+      security considerations, make the authenticationSchemes attribute
+      publicly accessible without prior authentication.  REQUIRED.  The
+      following sub-attributes are defined:
+
+      type  The authentication scheme.  This specification defines the
+         values "oauth", "oauth2", "oauthbearertoken", "httpbasic", and
+         "httpdigest".  REQUIRED.
+
+      name  The common authentication scheme name, e.g., HTTP Basic.
+         REQUIRED.
+
+      description  A description of the authentication scheme.
+         REQUIRED.
+
+      specUri  An HTTP-addressable URL pointing to the authentication
+         scheme's specification.  OPTIONAL.
+
+      documentationUri  An HTTP-addressable URL pointing to the
+         authentication scheme's usage documentation.  OPTIONAL.
+

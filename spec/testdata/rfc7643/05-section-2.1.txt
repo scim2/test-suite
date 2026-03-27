@@ -1,0 +1,44 @@
+2.1.  Attributes
+
+   A resource is a collection of attributes identified by one or more
+   schemas.  Minimally, an attribute consists of the attribute name and
+   at least one simple or complex value, either of which may be
+   multi-valued.  For each attribute, a SCIM schema defines the data
+   type, plurality, mutability, and other distinguishing features of an
+   attribute.
+
+   Attribute names are case insensitive and are often "camel-cased"
+   (e.g., "camelCase").  SCIM resources are represented in JSON
+   [RFC7159] format and MUST specify schema via the "schemas" attribute
+   per Section 3.
+
+   Attribute names MUST conform to the following ABNF rules:
+
+               ATTRNAME   = ALPHA *(nameChar)
+               nameChar   = "$" / "-" / "_" / DIGIT / ALPHA
+
+                    Figure 1: ABNF for Attribute Names
+
+   The above rules (and other rules in this specification) use the "Core
+   Rules" from ABNF; see Appendix B of [RFC5234].  Unless otherwise
+   specified in this document, all ABNF strings are case insensitive and
+   the character set for these strings is US-ASCII.  For example, all
+   attribute names defined by the above rule are case insensitive.
+
+   When defining attribute names, it should be noted that the hyphen
+   ("-") is not permitted in JavaScript attribute names (or in attribute
+   names for some other languages).  While there are no known issues
+   within HTTP protocol and JSON notation, attribute names containing
+   hyphens may need to be escaped when declaring corresponding names of
+   JavaScript attributes.
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 7]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+

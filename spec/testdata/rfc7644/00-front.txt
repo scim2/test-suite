@@ -1,0 +1,147 @@
+
+
+
+
+
+
+Internet Engineering Task Force (IETF)                      P. Hunt, Ed.
+Request for Comments: 7644                                        Oracle
+Category: Standards Track                                     K. Grizzle
+ISSN: 2070-1721                                                SailPoint
+                                                               M. Ansari
+                                                                   Cisco
+                                                           E. Wahlstroem
+                                                        Nexus Technology
+                                                            C. Mortimore
+                                                              Salesforce
+                                                          September 2015
+
+
+         System for Cross-domain Identity Management: Protocol
+
+Abstract
+
+   The System for Cross-domain Identity Management (SCIM) specification
+   is an HTTP-based protocol that makes managing identities in multi-
+   domain scenarios easier to support via a standardized service.
+   Examples include, but are not limited to, enterprise-to-cloud service
+   providers and inter-cloud scenarios.  The specification suite seeks
+   to build upon experience with existing schemas and deployments,
+   placing specific emphasis on simplicity of development and
+   integration, while applying existing authentication, authorization,
+   and privacy models.  SCIM's intent is to reduce the cost and
+   complexity of user management operations by providing a common user
+   schema, an extension model, and a service protocol defined by this
+   document.
+
+Status of This Memo
+
+   This is an Internet Standards Track document.
+
+   This document is a product of the Internet Engineering Task Force
+   (IETF).  It represents the consensus of the IETF community.  It has
+   received public review and has been approved for publication by the
+   Internet Engineering Steering Group (IESG).  Further information on
+   Internet Standards is available in Section 2 of RFC 5741.
+
+   Information about the current status of this document, any errata,
+   and how to provide feedback on it may be obtained at
+   http://www.rfc-editor.org/info/rfc7644.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 1]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+Copyright Notice
+
+   Copyright (c) 2015 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (http://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+Table of Contents
+
+   1. Introduction and Overview .......................................3
+      1.1. Intended Audience ..........................................3
+      1.2. Notational Conventions .....................................4
+      1.3. Definitions ................................................4
+   2. Authentication and Authorization ................................5
+      2.1. Use of Tokens as Authorizations ............................7
+      2.2. Anonymous Requests .........................................7
+   3. SCIM Protocol ...................................................8
+      3.1. Background .................................................8
+      3.2. SCIM Endpoints and HTTP Methods ............................9
+      3.3. Creating Resources ........................................11
+           3.3.1. Resource Types .....................................13
+      3.4. Retrieving Resources ......................................13
+           3.4.1. Retrieving a Known Resource ........................14
+           3.4.2. Query Resources ....................................15
+           3.4.3. Querying Resources Using HTTP POST .................27
+      3.5. Modifying Resources .......................................29
+           3.5.1. Replacing with PUT .................................30
+           3.5.2. Modifying with PATCH ...............................32
+      3.6. Deleting Resources ........................................48
+      3.7. Bulk Operations ...........................................49
+           3.7.1. Circular Reference Processing ......................51
+           3.7.2. "bulkId" Temporary Identifiers .....................53
+           3.7.3. Response and Error Handling ........................58
+           3.7.4. Maximum Operations .................................63
+      3.8. Data Input/Output Formats .................................64
+      3.9. Additional Operation Response Parameters ..................64
+      3.10. Attribute Notation .......................................66
+      3.11. "/Me" Authenticated Subject Alias ........................66
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 2]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+      3.12. HTTP Status and Error Response Handling ..................67
+      3.13. SCIM Protocol Versioning .................................71
+      3.14. Versioning Resources .....................................71
+   4. Service Provider Configuration Endpoints .......................73
+   5. Preparation and Comparison of Internationalized Strings ........76
+   6. Multi-Tenancy ..................................................76
+      6.1. Associating Clients to Tenants ............................77
+      6.2. SCIM Identifiers with Multiple Tenants ....................78
+   7. Security Considerations ........................................78
+      7.1. HTTP Considerations .......................................78
+      7.2. TLS Support Considerations ................................78
+      7.3. Authorization Token Considerations ........................78
+      7.4. Bearer Token and Cookie Considerations ....................79
+      7.5. Privacy Considerations ....................................79
+           7.5.1. Personal Information ...............................79
+           7.5.2. Disclosure of Sensitive Information in URIs ........80
+      7.6. Anonymous Requests ........................................80
+      7.7. Secure Storage and Handling of Sensitive Data .............81
+      7.8. Case-Insensitive Comparison and International Languages ...82
+   8. IANA Considerations ............................................82
+      8.1. Media Type Registration ...................................82
+      8.2. Registering URIs for SCIM Messages ........................84
+   9. References .....................................................85
+      9.1. Normative References ......................................85
+      9.2. Informative References ....................................87
+   Acknowledgements ..................................................88
+   Contributors ......................................................88
+   Authors' Addresses ................................................89
+

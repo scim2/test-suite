@@ -21,8 +21,8 @@
   --warn-border: #ff9800;
   --untested: #e3f2fd;
   --untested-border: #2196f3;
-  --not-testable: #f0f0f0;
-  --not-testable-border: #999;
+  --not-testable: #ede7f6;
+  --not-testable-border: #9575cd;
   --req-highlight: #ede7f6;
   --req-border: #7e57c2;
   --selected: #fff3e0;
@@ -55,8 +55,8 @@
     --warn-border: #ff9800;
     --untested: #1b2a3d;
     --untested-border: #2196f3;
-    --not-testable: #2a2a2a;
-    --not-testable-border: #777;
+    --not-testable: #2d2350;
+    --not-testable-border: #9575cd;
     --req-highlight: #2d2350;
     --req-border: #7e57c2;
     --selected: #3d2e15;
@@ -157,11 +157,11 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
   overflow: hidden;
 }
 .spec-panel {
-  flex: 1;
+  width: 660px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
-  min-width: 0;
 }
 .spec-scroll {
   flex: 1;
@@ -200,12 +200,9 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
 .spec-line.hl-fail,
 .spec-line.hl-warn,
 .spec-line.hl-untested,
+.spec-line.hl-not-testable,
 .spec-line.hl-req { cursor: pointer; }
-.spec-line.hl-pass .line-gutter,
-.spec-line.hl-fail .line-gutter,
-.spec-line.hl-warn .line-gutter,
-.spec-line.hl-untested .line-gutter,
-.spec-line.hl-req .line-gutter {
+.line-gutter {
   width: 3px;
   flex-shrink: 0;
 }
@@ -215,8 +212,16 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
 .spec-line.hl-untested .line-gutter { background: var(--untested-border); }
 .spec-line.hl-not-testable .line-gutter { background: var(--not-testable-border); }
 .spec-line.hl-req .line-gutter { background: var(--req-border); }
-.spec-line.partial { background: rgba(255, 152, 0, 0.08); }
-.hl-span { border-radius: 2px; }
+.spec-line.partial { opacity: 1; }
+.spec-line.partial.hl-pass { background: color-mix(in srgb, var(--pass) 40%, transparent); }
+.spec-line.partial.hl-fail { background: color-mix(in srgb, var(--fail) 40%, transparent); }
+.spec-line.partial.hl-warn { background: color-mix(in srgb, var(--warn) 40%, transparent); }
+.spec-line.partial.hl-untested { background: color-mix(in srgb, var(--untested) 40%, transparent); }
+.spec-line.partial.hl-not-testable { background: color-mix(in srgb, var(--not-testable) 40%, transparent); }
+.spec-line.partial.hl-req { background: color-mix(in srgb, var(--req-highlight) 40%, transparent); }
+.hl-span { padding: 1px 0; margin: -1px 0; }
+.hl-selected .hl-span { background: none !important; }
+.hl-span-selected { background: var(--selected) !important; }
 .hl-span-pass { background: var(--pass); }
 .hl-span-fail { background: var(--fail); }
 .hl-span-warn { background: var(--warn); }
@@ -224,8 +229,8 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
 .hl-span-not-testable { background: var(--not-testable); }
 .hl-span-req { background: var(--req-highlight); }
 .report-panel {
-  width: 420px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -497,28 +502,20 @@ if (REPORT) {
   for (const entry of (REPORT.untested || [])) outcomes[entry.id] = { outcome: "untested", message: "" };
 }
 
-// Build line -> requirements map per RFC.
-// Each entry: { reqs: [req, ...], startCol: N, endCol: N }
-// startCol/endCol: 0 means full line extent; >0 means 1-based column.
+// Build line -> segments map per RFC.
+// Each line maps to an array of segments: { req, startCol, endCol }
+// startCol: 0-based char index where this req's highlight begins on this line.
+// endCol: 0-based char index where it ends (exclusive), or -1 for end of line.
 const lineReqs = {};
 for (const req of REQUIREMENTS) {
   if (req.rfc === 0 || req.startLine === 0) continue;
   const key = String(req.rfc);
   if (!lineReqs[key]) lineReqs[key] = {};
   for (let l = req.startLine; l <= req.endLine; l++) {
-    if (!lineReqs[key][l]) lineReqs[key][l] = { reqs: [], startCol: -1, endCol: -1 };
-    const entry = lineReqs[key][l];
-    entry.reqs.push(req);
-    // Column for this line from this requirement.
-    const sc = (l === req.startLine) ? (req.startCol || 0) : 0;
-    const ec = (l === req.endLine) ? (req.endCol || 0) : 0;
-    // Widen range: 0 means full extent and always wins.
-    if (entry.startCol === -1) entry.startCol = sc;
-    else if (sc === 0 || entry.startCol === 0) entry.startCol = 0;
-    else entry.startCol = Math.min(entry.startCol, sc);
-    if (entry.endCol === -1) entry.endCol = ec;
-    else if (ec === 0 || entry.endCol === 0) entry.endCol = 0;
-    else entry.endCol = Math.max(entry.endCol, ec);
+    if (!lineReqs[key][l]) lineReqs[key][l] = [];
+    const sc = (l === req.startLine && req.startCol > 0) ? req.startCol - 1 : 0;
+    const ec = (l === req.endLine && req.endCol > 0) ? req.endCol : -1;
+    lineReqs[key][l].push({ req, startCol: sc, endCol: ec });
   }
 }
 
@@ -591,29 +588,36 @@ function renderSpec() {
     div.className = "spec-line";
     div.id = "rfc" + currentRFC + "-L" + lineNum;
 
-    const entry = rlMap[lineNum];
-    let worstOC = "unknown";
-    if (entry) {
-      // Use the "worst" outcome for highlighting.
-      const priority = { "fail": 5, "warn": 4, "untested": 3, "not-testable": 1, "pass": 2, "unknown": 0 };
-      for (const r of entry.reqs) {
-        const oc = outcomeClass(r);
-        if (priority[oc] > priority[worstOC]) worstOC = oc;
+    const segments = rlMap[lineNum]; // array of { req, startCol, endCol }
+    const priority = { "fail": 5, "warn": 4, "untested": 3, "not-testable": 1, "pass": 2, "unknown": 0 };
+
+    if (segments) {
+      // Pick the most severe outcome for the gutter color (fail > warn > untested > pass).
+      let gutterOC = "unknown";
+      for (const seg of segments) {
+        const oc = outcomeClass(seg.req);
+        if (priority[oc] > priority[gutterOC]) gutterOC = oc;
       }
 
-      const isPartial = entry.startCol > 0 || entry.endCol > 0;
-      div.classList.add(hlClass(worstOC));
-      if (isPartial) div.classList.add("partial");
-      div.onclick = () => selectReq(entry.reqs[0].id);
+      // A line is "full" when every segment covers the entire line (all sc=0, ec=-1).
+      const isFull = segments.every(s => s.startCol === 0 && s.endCol === -1);
+      if (isFull) {
+        div.classList.add(hlClass(gutterOC));
+        if (selectedReqId && segments.some(s => s.req.id === selectedReqId)) {
+          div.classList.add("hl-selected");
+        }
+      } else {
+        div.classList.add("partial");
+      }
+      div.onclick = () => selectReq(segments[0].req.id);
 
-      const gutter = document.createElement("div");
-      gutter.className = "line-gutter";
-      div.appendChild(gutter);
+      // Gutter color comes from the highlight class on the div.
+      div.classList.add(hlClass(gutterOC));
     }
 
-    if (selectedReqId && entry && entry.reqs.some(r => r.id === selectedReqId)) {
-      div.classList.add("hl-selected");
-    }
+    const gutter = document.createElement("div");
+    gutter.className = "line-gutter";
+    div.appendChild(gutter);
 
     const num = document.createElement("span");
     num.className = "line-num";
@@ -622,22 +626,40 @@ function renderSpec() {
 
     const text = document.createElement("span");
     text.className = "line-text";
-    if (entry && (entry.startCol > 0 || entry.endCol > 0)) {
+    if (segments && segments.some(s => s.startCol > 0 || s.endCol !== -1)) {
+      // Build sorted, non-overlapping highlight ranges.
       const line = lines[i];
-      const sc = entry.startCol > 0 ? entry.startCol - 1 : 0;
-      const ec = entry.endCol > 0 ? entry.endCol : line.length;
-      if (sc > 0) {
-        const before = document.createElement("span");
-        before.textContent = line.substring(0, sc);
-        text.appendChild(before);
+      const ranges = [];
+      for (const seg of segments) {
+        const sc = seg.startCol;
+        const ec = seg.endCol === -1 ? line.length : seg.endCol;
+        const oc = outcomeClass(seg.req);
+        const selected = selectedReqId === seg.req.id;
+        ranges.push({ sc, ec, oc, selected, req: seg.req });
       }
-      const hl = document.createElement("span");
-      hl.className = "hl-span hl-span-" + worstOC;
-      hl.textContent = line.substring(sc, ec);
-      text.appendChild(hl);
-      if (ec < line.length) {
+      ranges.sort((a, b) => a.sc - b.sc);
+
+      text.style.display = "flex";
+      let pos = 0;
+      for (const r of ranges) {
+        if (r.sc > pos) {
+          const gap = document.createElement("span");
+          gap.textContent = line.substring(pos, r.sc);
+          text.appendChild(gap);
+        }
+        const hl = document.createElement("span");
+        hl.className = "hl-span hl-span-" + r.oc;
+        if (r.selected) hl.classList.add("hl-span-selected");
+        hl.textContent = line.substring(r.sc, r.ec);
+        // If this range extends to end of line, fill remaining space.
+        if (r.ec >= line.length) hl.style.flex = "1";
+        hl.onclick = (e) => { e.stopPropagation(); selectReq(r.req.id); };
+        text.appendChild(hl);
+        pos = r.ec;
+      }
+      if (pos < line.length) {
         const after = document.createElement("span");
-        after.textContent = line.substring(ec);
+        after.textContent = line.substring(pos);
         text.appendChild(after);
       }
     } else {
@@ -796,6 +818,7 @@ function deselectReq() {
   const prev = selectedReqId;
   selectedReqId = null;
   document.querySelectorAll(".hl-selected").forEach(el => el.classList.remove("hl-selected"));
+  document.querySelectorAll(".hl-span-selected").forEach(el => el.classList.remove("hl-span-selected"));
   const prevEl = document.getElementById("req-" + prev);
   if (prevEl) prevEl.classList.remove("selected");
 }
@@ -806,32 +829,15 @@ function selectReq(id) {
   const prev = selectedReqId;
   selectedReqId = id;
 
-  // Update spec highlights.
-  document.querySelectorAll(".hl-selected").forEach(el => el.classList.remove("hl-selected"));
-
   const req = REQUIREMENTS.find(r => r.id === id);
-  if (req && req.rfc > 0 && String(req.rfc) === currentRFC) {
-    for (let l = req.startLine; l <= req.endLine; l++) {
-      const el = document.getElementById("rfc" + currentRFC + "-L" + l);
-      if (el) el.classList.add("hl-selected");
-    }
-    // Scroll spec to requirement.
-    const target = document.getElementById("rfc" + currentRFC + "-L" + req.startLine);
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-  } else if (req && req.rfc > 0 && String(req.rfc) !== currentRFC) {
-    // Switch to the correct RFC tab.
+  if (req && req.rfc > 0 && String(req.rfc) !== currentRFC) {
     currentRFC = String(req.rfc);
     renderTabs();
-    renderSpec();
-    // After re-render, scroll and highlight.
-    requestAnimationFrame(() => {
-      for (let l = req.startLine; l <= req.endLine; l++) {
-        const el = document.getElementById("rfc" + currentRFC + "-L" + l);
-        if (el) el.classList.add("hl-selected");
-      }
-      const target = document.getElementById("rfc" + currentRFC + "-L" + req.startLine);
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+  }
+  renderSpec();
+  if (req && req.rfc > 0) {
+    const target = document.getElementById("rfc" + currentRFC + "-L" + req.startLine);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   // Update list selection.
@@ -871,6 +877,10 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () 
   if (!localStorage.getItem("theme")) applyTheme(getEffectiveTheme());
 });
 
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") deselectReq();
+});
+
 // Build GitHub issue URL for a requirement.
 const ISSUE_BASE = "https://github.com/scim2/test-suite/issues/new";
 const REPO_BASE = "https://github.com/scim2/test-suite";
@@ -878,12 +888,9 @@ const VERSION = "{{.Version}}";
 const COMMIT_HASH = "{{.CommitHash}}";
 const RFC_FILES = { "7642": "spec/testdata/rfc7642.txt", "7643": "spec/testdata/rfc7643.txt", "7644": "spec/testdata/rfc7644.txt" };
 
-function sourceLink(rfc, startLine, endLine) {
-  const file = RFC_FILES[String(rfc)];
-  if (!file) return "";
-  if (!COMMIT_HASH) return "";
-  const ref = COMMIT_HASH;
-  let url = REPO_BASE + "/blob/" + ref + "/" + file + "#L" + startLine;
+function sourceLink(file, startLine, endLine) {
+  if (!file || !COMMIT_HASH) return "";
+  let url = REPO_BASE + "/blob/" + COMMIT_HASH + "/" + file + "#L" + startLine;
   if (endLine && endLine !== startLine) url += "-L" + endLine;
   return url;
 }
@@ -918,7 +925,7 @@ document.getElementById("specScroll").addEventListener("mouseup", (e) => {
   const origEnd = endLine ? (olm[endLine] || endLine) : null;
 
   const title = "RFC " + currentRFC + (origStart ? " L" + origStart : "") + ": <short description>";
-  const link = origStart ? sourceLink(currentRFC, origStart, origEnd) : "";
+  const link = origStart ? sourceLink(RFC_FILES[currentRFC], origStart, origEnd) : "";
   let body = "**Source:** RFC " + currentRFC;
   if (origStart) body += ", Line" + (origEnd && origEnd !== origStart ? "s " + origStart + "-" + origEnd : " " + origStart);
   body += "\n";

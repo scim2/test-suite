@@ -1,0 +1,19 @@
+1.2.  Notational Conventions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in [RFC2119].  These key
+   words are capitalized when used to unambiguously specify requirements
+   of the protocol or application features and behavior that affect the
+   interoperability and security of implementations.  When these words
+   are not capitalized, they are meant in their natural-language sense.
+
+   For purposes of readability, examples are not URL encoded.
+   Implementers MUST percent-encode URLs as described in Section 2.1 of
+   [RFC3986].
+
+   Throughout this document, figures may contain spaces and extra line
+   wrapping to improve readability and accommodate space limitations.
+   Similarly, some URIs contained within examples have been shortened
+   for space and readability reasons (as indicated by "...").
+

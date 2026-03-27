@@ -1,0 +1,147 @@
+4.  Service Provider Configuration Endpoints
+
+   SCIM defines three endpoints to facilitate discovery of SCIM service
+   provider features and schema that MAY be retrieved using HTTP GET:
+
+   /ServiceProviderConfig
+      An HTTP GET to this endpoint will return a JSON structure that
+      describes the SCIM specification features available on a service
+      provider.  This endpoint SHALL return responses with a JSON object
+      using a "schemas" attribute of
+      "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig".
+      The attributes returned in the JSON object are defined in
+      Section 5 of [RFC7643].  An example representation of SCIM service
+      provider configuration may be found in Section 8.5 of [RFC7643].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 73]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   /Schemas
+      An HTTP GET to this endpoint is used to retrieve information about
+      resource schemas supported by a SCIM service provider.  An HTTP
+      GET to the endpoint "/Schemas" SHALL return all supported schemas
+      in ListResponse format (see Figure 3).  Individual schema
+      definitions can be returned by appending the schema URI to the
+      /Schemas endpoint.  For example:
+
+            /Schemas/urn:ietf:params:scim:schemas:core:2.0:User
+
+      The contents of each schema returned are described in Section 7 of
+      [RFC7643].  An example representation of SCIM schemas may be found
+      in Section 8.7 of [RFC7643].
+
+   /ResourceTypes
+      An HTTP GET to this endpoint is used to discover the types of
+      resources available on a SCIM service provider (e.g., Users and
+      Groups).  Each resource type defines the endpoints, the core
+      schema URI that defines the resource, and any supported schema
+      extensions.  The attributes defining a resource type can be found
+      in Section 6 of [RFC7643], and an example representation can be
+      found in Section 8.6 of [RFC7643].
+
+   In cases where a request is for a specific "ResourceType" or
+   "Schema", the single JSON object is returned in the same way that a
+   single User or Group is retrieved, as per Section 3.4.1.  When
+   returning multiple ResourceTypes or Schemas, the message form
+   described by the "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+   (ListResponse) form SHALL be used as shown in Figure 3 and in
+   Figure 9 below.  Query parameters described in Section 3.4.2, such as
+   filtering, sorting, and pagination, SHALL be ignored.  If a "filter"
+   is provided, the service provider SHOULD respond with HTTP status
+   code 403 (Forbidden) to ensure that clients cannot incorrectly assume
+   that any matching conditions specified in a filter are true.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 74]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following is a non-normative example of an HTTP GET to the
+   /ResourceTypes endpoint:
+
+  {
+    "totalResults":2,
+    "itemsPerPage":10,
+    "startIndex":1,
+    "schemas":["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+    "Resources":[{
+      "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+      "id":"User",
+      "name":"User",
+      "endpoint": "/Users",
+      "description": "User Account",
+      "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
+      "schemaExtensions": [{
+        "schema":
+          "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+        "required": true
+      }],
+      "meta": {
+        "location":"https://example.com/v2/ResourceTypes/User",
+        "resourceType": "ResourceType"
+      }
+    },
+   {
+     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+     "id":"Group",
+     "name":"Group",
+     "endpoint": "/Groups",
+     "description": "Group",
+     "schema": "urn:ietf:params:scim:schemas:core:2.0:Group",
+     "meta": {
+       "location":"https://example.com/v2/ResourceTypes/Group",
+       "resourceType": "ResourceType"
+     }
+   }]
+  }
+
+            Figure 9: Example Resource Type JSON Representation
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 75]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

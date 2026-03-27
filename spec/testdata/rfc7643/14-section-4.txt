@@ -1,0 +1,6 @@
+4.  SCIM Core Resources and Extensions
+
+   This section defines the default resource schemas present in a SCIM
+   server.  SCIM is not exclusive to these resources and may be extended
+   to support other resource types (see Section 3.2).
+

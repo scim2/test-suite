@@ -1,0 +1,39 @@
+2.  SCIM Schema
+
+   A SCIM server provides a set of resources, the allowable contents of
+   which are defined by a set of schema URIs and a resource type.
+   SCIM's schema is not a document-centric one such as with
+   [XML-Schema].  Instead, SCIM's support of schema is attribute based,
+   where each attribute may have different type, mutability,
+   cardinality, or returnability.  Validation of documents and messages
+   is always performed by an intended receiver, as specified by the SCIM
+   specifications.  Validation is performed by the receiver in the
+   context of a SCIM protocol request (see [RFC7644]).  For example, a
+   SCIM service provider, upon receiving a request to replace an
+   existing resource with a replacement JSON object, evaluates each
+   asserted attribute based on its characteristics as defined in the
+   relevant schema (e.g., mutability) and decides which attributes may
+   be replaced or ignored.
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 6]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   This specification provides a minimal core schema for representing
+   users and groups (resources), encompassing common attributes found in
+   many existing deployments and schemas.  In addition to the minimal
+   core schema, this document also specifies a standardized means by
+   which service providers may extend schemas to define new resources
+   and attributes in both standardized and service-provider-specific
+   cases.
+
+   Resources are categorized into common resource types such as "User"
+   or "Group".  Collections of resources of the same type are usually
+   contained within the same "container" ("folder") endpoint.
+

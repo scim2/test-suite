@@ -1,0 +1,840 @@
+3.7.  Bulk Operations
+
+   The SCIM bulk operation is an optional server feature that enables
+   clients to send a potentially large collection of resource operations
+   in a single request.  Support for bulk requests can be discovered by
+   querying the service provider configuration (see Section 4).  The
+   body of a bulk operation contains a set of HTTP resource operations
+   using one of the HTTP methods supported by the API, i.e., POST, PUT,
+   PATCH, or DELETE.
+
+   Bulk requests are identified using the following schema URI:
+   "urn:ietf:params:scim:api:messages:2.0:BulkRequest".  Bulk responses
+   are identified using the following URI:
+   "urn:ietf:params:scim:api:messages:2.0:BulkResponse".  Bulk requests
+   and bulk responses share many attributes.  Unless otherwise
+   specified, each attribute below is present in both bulk requests and
+   bulk responses.
+
+   The following singular attribute is defined, in addition to the
+   common attributes defined in [RFC7643].
+
+   failOnErrors
+      An integer specifying the number of errors that the service
+      provider will accept before the operation is terminated and an
+      error response is returned.  OPTIONAL in a request.  Not valid in
+      a response.
+
+   The following complex multi-valued attribute is defined, in addition
+   to the common attributes defined in [RFC7643].
+
+   Operations
+      Defines operations within a bulk job.  Each operation corresponds
+      to a single HTTP request against a resource endpoint.  REQUIRED.
+      The Operations attribute has the following sub-attributes:
+
+      method  The HTTP method of the current operation.  Possible values
+         are "POST", "PUT", "PATCH", or "DELETE".  REQUIRED.
+
+      bulkId  The transient identifier of a newly created resource,
+         unique within a bulk request and created by the client.  The
+         bulkId serves as a surrogate resource id enabling clients to
+         uniquely identify newly created resources in the response and
+         cross-reference new resources in and across operations within a
+         bulk request.  REQUIRED when "method" is "POST".
+
+      version  The current resource version.  Version MAY be used if the
+         service provider supports entity-tags (ETags) (Section 2.3 of
+         [RFC7232]) and "method" is "PUT", "PATCH", or "DELETE".
+
+
+
+Hunt, et al.                 Standards Track                   [Page 49]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+      path  The resource's relative path to the SCIM service provider's
+         root.  If "method" is "POST", the value must specify a resource
+         type endpoint, e.g., /Users or /Groups, whereas all other
+         "method" values must specify the path to a specific resource,
+         e.g., /Users/2819c223-7f76-453a-919d-413861904646.  REQUIRED in
+         a request.
+
+      data  The resource data as it would appear for a single SCIM POST,
+         PUT, or PATCH operation.  REQUIRED in a request when "method"
+         is "POST", "PUT", or "PATCH".
+
+      location  The resource endpoint URL.  REQUIRED in a response,
+         except in the event of a POST failure.
+
+      response  The HTTP response body for the specified request
+         operation.  When indicating a response with an HTTP status
+         other than a 200-series response, the response body MUST be
+         included.  For normal completion, the server MAY elect to omit
+         the response body.
+
+      status  The HTTP response status code for the requested operation.
+         When indicating an error, the "response" attribute MUST contain
+         the detail error response as per Section 3.12.
+
+   If a bulk job is processed successfully, HTTP response code 200 OK
+   MUST be returned; otherwise, an appropriate HTTP error code MUST be
+   returned.
+
+   The service provider MUST continue performing as many changes as
+   possible and disregard partial failures.  The client MAY override
+   this behavior by specifying a value for the "failOnErrors" attribute.
+   The "failOnErrors" attribute defines the number of errors that the
+   service provider should accept before failing the remaining
+   operations returning the response.
+
+   To be able to reference a newly created resource, the bulkId
+   attribute MAY be specified when creating new resources.  The "bulkId"
+   is defined by the client as a surrogate identifier in a POST
+   operation (see Section 3.7.2).  The service provider MUST return the
+   same "bulkId" together with the newly created resource.  The "bulkId"
+   can then be used by the client to map the service provider id with
+   the "bulkId" of the created resource.
+
+   A SCIM service provider MAY elect to optimize the sequence of
+   operations received (e.g., to improve processing performance).  When
+   doing so, the service provider MUST ensure that the client's intent
+   is preserved and the same stateful result is achieved as for
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 50]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   non-optimized processing.  For example, before a "User" can be added
+   to a "Group", they must first be created.  Processing these requests
+   out of order might result in a failure to add the new "User" to the
+   "Group".
+
+3.7.1.  Circular Reference Processing
+
+   The service provider MUST try to resolve circular cross-references
+   between resources in a single bulk job but MAY stop after a failed
+   attempt and instead return HTTP status code 409 (Conflict).  The
+   following example exhibits the potential conflict.
+
+   POST /v2/Bulk
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+     "Operations": [
+       {
+         "method": "POST",
+         "path": "/Groups",
+         "bulkId": "qwerty",
+         "data": {
+           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+           "displayName": "Group A",
+           "members": [
+             {
+               "type": "Group",
+               "value": "bulkId:ytrewq"
+             }
+           ]
+         }
+       },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 51]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+       {
+         "method": "POST",
+         "path": "/Groups",
+         "bulkId": "ytrewq",
+         "data": {
+           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+           "displayName": "Group B",
+           "members": [
+             {
+               "type": "Group",
+               "value": "bulkId:qwerty"
+             }
+           ]
+         }
+       }
+     ]
+   }
+
+   If the service provider resolved the above circular references, the
+   following is returned from a subsequent GET request.
+
+   GET /v2/Groups?filter=displayName sw 'Group'
+   Host: example.com
+   Accept: application/scim+json
+   Authorization: Bearer h480djs93hd8
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+     "totalResults": 2,
+     "Resources": [
+       {
+         "id": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+         "displayName": "Group A",
+         "meta": {
+           "resourceType": "Group",
+           "created": "2011-08-01T18:29:49.793Z",
+           "lastModified": "2011-08-01T18:29:51.135Z",
+           "location":
+   "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+           "version": "W\/\"mvwNGaxB5SDq074p\""
+         },
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 52]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+         "members": [
+           {
+             "value": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+             "$ref":
+   "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+             "type": "Group"
+           }
+         ]
+       },
+       {
+         "id": "6c5bb468-14b2-4183-baf2-06d523e03bd3",
+         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+         "displayName": "Group B",
+         "meta": {
+           "resourceType": "Group",
+           "created": "2011-08-01T18:29:50.873Z",
+           "lastModified": "2011-08-01T18:29:50.873Z",
+           "location":
+   "https://example.com/v2/Groups/6c5bb468-14b2-4183-baf2-06d523e03bd3",
+           "version": "W\/\"wGB85s2QJMjiNnuI\""
+         },
+         "members": [
+           {
+             "value": "c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+             "$ref":
+   "https://example.com/v2/Groups/c3a26dd3-27a0-4dec-a2ac-ce211e105f97",
+             "type": "Group"
+           }
+         ]
+       }
+     ]
+   }
+
+3.7.2.  "bulkId" Temporary Identifiers
+
+   A SCIM client can, within one bulk operation, create a new "User",
+   create a new "Group", and add the newly created "User" to the newly
+   created "Group".  In order to add the new "User" to the "Group", the
+   client must use the surrogate id attribute, "bulkId", to reference
+   the User.  The "bulkId" attribute value must be prepended with the
+   literal "bulkId:"; e.g., if the bulkId is 'qwerty', the value is
+   "bulkId:qwerty".  The service provider MUST replace the string
+   "bulkId:qwerty" with the permanent resource id once created.
+
+   To create multiple distinct requests, each with their own "bulkId",
+   the SCIM client specifies different "bulkId" values for each separate
+   request.
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 53]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example creates a User with the "userName" 'Alice' and
+   a "Group" with "displayName", with a value of "Tour Guides" with
+   Alice as a member.  Notice that each operation has its own "bulkId"
+   value.  However, the second operation (whose "bulkId" is "ytrewq")
+   refers to the "bulkId" of "qwerty" in order to add Alice to the new
+   'Tour Guides' group.
+
+   POST /v2/Bulk
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+     "Operations": [
+       {
+         "method": "POST",
+         "path": "/Users",
+         "bulkId": "qwerty",
+         "data": {
+           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+           "userName": "Alice"
+         }
+       },
+       {
+         "method": "POST",
+         "path": "/Groups",
+         "bulkId": "ytrewq",
+         "data": {
+           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+           "displayName": "Tour Guides",
+           "members": [
+             {
+               "type": "User",
+               "value": "bulkId:qwerty"
+             }
+           ]
+         }
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 54]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The service provider returns the following response:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+     "Operations": [
+       {
+         "location":
+   "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+         "method": "POST",
+         "bulkId": "qwerty",
+         "version": "W\/\"4weymrEsh5O6cAEK\"",
+         "status": {
+           "code": "201"
+         }
+       },
+       {
+         "location":
+   "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+         "method": "POST",
+         "bulkId": "ytrewq",
+         "version": "W\/\"lha5bbazU3fNvfe5\"",
+         "status": {
+           "code": "201"
+         }
+       }
+     ]
+   }
+
+   In the above example, the "Alice" User resource has an "id" of
+   "92b725cd-9465-4e7d-8c16-01f8e146b87a" and the 'Tour Guides' Group
+   has an "id" of "e9e30dba-f08f-4109-8486-d5c6a331660a".
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 55]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   A subsequent GET request for the 'Tour Guides' Group (with an "id" of
+   "e9e30dba-f08f-4109-8486-d5c6a331660a") returns the following, with
+   Alice's "id" as the value for the member in the Group 'Tour Guides':
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+   Location:
+    https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a
+   ETag: W/"lha5bbazU3fNvfe5"
+
+   {
+     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+     "id": "e9e30dba-f08f-4109-8486-d5c6a331660a",
+     "displayName": "Tour Guides",
+     "meta": {
+       "resourceType": "Group",
+       "created": "2011-08-01T18:29:49.793Z",
+       "lastModified": "2011-08-01T20:31:02.315Z",
+       "location":
+   "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a",
+       "version": "W\/\"lha5bbazU3fNvfe5\""
+     },
+     "members": [
+       {
+         "value": "92b725cd-9465-4e7d-8c16-01f8e146b87a",
+         "$ref":
+   "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+         "type": "User"
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 56]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Extensions that include references to other resources MUST be handled
+   in the same way by the service provider.  The following example uses
+   the bulkId attribute within the enterprise extension managerId
+   attribute.
+
+ POST /v2/Bulk
+ Host: example.com
+ Accept: application/scim+json
+ Content-Type: application/scim+json
+ Authorization: Bearer h480djs93hd8
+ Content-Length: ...
+
+ {
+   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+   "Operations": [
+     {
+       "method": "POST",
+       "path": "/Users",
+       "bulkId": "qwerty",
+       "data": {
+         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+         "userName": "Alice"
+       }
+     },
+     {
+       "method": "POST",
+       "path": "/Users",
+       "bulkId": "ytrewq",
+       "data": {
+         "schemas": [
+           "urn:ietf:params:scim:schemas:core:2.0:User",
+           "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+         ],
+         "userName": "Bob",
+         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
+           "employeeNumber": "11250",
+           "manager": {
+             "value": "bulkId:qwerty"
+           }
+         }
+       }
+     }
+   ]
+ }
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 57]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.7.3.  Response and Error Handling
+
+   The service provider response MUST include the result of all
+   processed operations.  A "location" attribute that includes the
+   resource's endpoint MUST be returned for all operations except for
+   failed POST operations (which have no location).  The status
+   attribute includes information about the success or failure of one
+   operation within the bulk job.  The status attribute MUST include the
+   code attribute that holds the HTTP response code that would have been
+   returned if a single HTTP request would have been used.  If an error
+   occurred, the status MUST also include the description attribute
+   containing a human-readable explanation of the error.
+
+   "status": "201"
+
+   The following is an example of a status in a failed operation.
+
+  "status": "400",
+  "response":{
+       "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+       "scimType":"invalidSyntax"
+       "detail":
+  "Request is unparsable, syntactically incorrect, or violates schema.",
+       "status":"400"
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 58]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to add, update, and remove a user.
+   The "failOnErrors" attribute is set to '1', indicating that the
+   service provider will stop processing and return results after one
+   error.  The POST operation's bulkId value is set to 'qwerty',
+   enabling the client to match the new User with the returned
+   resource "id" of
+   "92b725cd-9465-4e7d-8c16-01f8e146b87a".
+
+   POST /v2/Bulk
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
+     "failOnErrors":1,
+     "Operations":[
+       {
+         "method":"POST",
+         "path":"/Users",
+         "bulkId":"qwerty",
+         "data":{
+           "schemas": ["urn:ietf:params:scim:api:messages:2.0:User"],
+           "userName":"Alice"
+         }
+       },
+       {
+         "method":"PUT",
+         "path":"/Users/b7c14771-226c-4d05-8860-134711653041",
+         "version":"W\/\"3694e05e9dff591\"",
+         "data":{
+           "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+           "id":"b7c14771-226c-4d05-8860-134711653041",
+           "userName":"Bob"
+         }
+       },
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 59]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+       {
+         "method": "PATCH",
+         "path": "/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+         "version": "W/\"edac3253e2c0ef2\"",
+         "data": {[
+           {
+               "op": "remove",
+               "path": "nickName"
+           },
+           {
+               "op": "add",
+               "path": "userName",
+               "value": "Dave"
+           }
+         ]}
+       },
+       {
+         "method":"DELETE",
+         "path":"/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+         "version":"W\/\"0ee8add0a938e1a\""
+       }
+     ]
+   }
+
+   The service provider returns the following response:
+
+  HTTP/1.1 200 OK
+  Content-Type: application/scim+json
+
+  {
+      "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+      "Operations": [
+          {
+              "location":
+  "https://example.com/v2/Users/92b725cd-9465-4e7d-8c16-01f8e146b87a",
+              "method": "POST",
+              "bulkId": "qwerty",
+              "version": "W\/\"oY4m4wn58tkVjJxK\"",
+              "status": "201"
+          },
+          {
+              "location":
+  "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+              "method": "PUT",
+              "version": "W\/\"huJj29dMNgu3WXPD\"",
+              "status": "200"
+          },
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 60]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+          {
+              "location":
+  "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+              "method": "PATCH",
+              "version": "W\/\"huJj29dMNgu3WXPD\"",
+              "status": "200"
+          },
+          {
+              "location":
+  "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+              "method": "DELETE",
+              "status": "204"
+          }
+      ]
+  }
+
+   The following response is returned if an error occurred when
+   attempting to create the User 'Alice'.  The service provider stops
+   processing the bulk operation and immediately returns a response to
+   the client.  The response contains the error and any successful
+   results prior to the error.
+
+  HTTP/1.1 200 OK
+  Content-Type: application/scim+json
+
+  {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+    "Operations": [
+      {
+        "method": "POST",
+        "bulkId": "qwerty",
+        "status": "400",
+        "response":{
+           "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+           "scimType":"invalidSyntax"
+           "detail":
+  "Request is unparsable, syntactically incorrect, or violates schema.",
+           "status":"400"
+        }
+      }
+    ]
+  }
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 61]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   If the "failOnErrors" attribute is not specified or the service
+   provider has not reached the error limit defined by the client, the
+   service provider will continue to process all operations.  The
+   following is an example in which all operations failed.
+
+  HTTP/1.1 200 OK
+  Content-Type: application/scim+json
+
+  {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkResponse"],
+    "Operations": [
+      {
+        "method": "POST",
+        "bulkId": "qwerty",
+        "status": "400",
+        "response":{
+           "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+           "scimType":"invalidSyntax"
+           "detail":
+  "Request is unparsable, syntactically incorrect, or violates schema.",
+           "status":"400"
+        }
+      },
+      {
+        "location":
+  "https://example.com/v2/Users/b7c14771-226c-4d05-8860-134711653041",
+        "method": "PUT",
+        "status": "412",
+        "response":{
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail":
+                  "Failed to update.  Resource changed on the server.",
+            "status":"412"
+        }
+      },
+      {
+        "location":
+  "https://example.com/v2/Users/5d8d29d3-342c-4b5f-8683-a3cb6763ffcc",
+        "method": "PATCH",
+        "status": "412",
+        "response":{
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail":
+                  "Failed to update.  Resource changed on the server.",
+            "status":"412"
+        }
+      },
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 62]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+      {
+        "location":
+  "https://example.com/v2/Users/e9025315-6bea-44e1-899c-1e07454e468b",
+        "method": "DELETE",
+        "status": "404",
+        "response":{
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail":"Resource does not exist.",
+            "status":"404"
+        }
+      }
+    ]
+  }
+
+3.7.4.  Maximum Operations
+
+   The service provider MUST define the maximum number of operations and
+   maximum payload size a client may send in a single request.  These
+   limits MAY be retrieved from the service provider configuration (see
+   'bulk' in Sections 5 and 8.5 of [RFC7643]).  If either limit is
+   exceeded, the service provider MUST return HTTP response code 413
+   (Payload Too Large).  The returned response MUST specify the limit
+   exceeded in the body of the error response.
+
+   In the following example, the client sent a request exceeding the
+   service provider's maximum payload size of 1 megabyte:
+
+   POST /v2/Bulk
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: 4294967296
+
+   ...
+
+   The server sends the following error in response to the oversized
+   request:
+
+  HTTP/1.1 413 Payload Too Large
+  Content-Type: application/scim+json
+
+  {
+    "schemas":["urn:ietf:params:scim:api:messages:2.0:Error"],
+    "status": "413",
+    "detail":
+  "The size of the bulk operation exceeds the maxPayloadSize (1048576)."
+  }
+
+
+
+Hunt, et al.                 Standards Track                   [Page 63]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

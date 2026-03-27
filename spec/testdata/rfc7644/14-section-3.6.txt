@@ -1,0 +1,56 @@
+3.6.  Deleting Resources
+
+   Clients request resource removal via DELETE.  Service providers MAY
+   choose not to permanently delete the resource but MUST return a 404
+   (Not Found) error code for all operations associated with the
+   previously deleted resource.  Service providers MUST omit the
+   resource from future query results.  In addition, the service
+   provider SHOULD NOT consider the deleted resource in conflict
+   calculation.  For example, if a User resource is deleted, a CREATE
+   request for a User resource with the same userName as the previously
+   deleted resource SHOULD NOT fail with a 409 error due to userName
+   conflict.
+
+            DELETE /Users/2819c223-7f76-453a-919d-413861904646
+            Host: example.com
+            Authorization: Bearer h480djs93hd8
+            If-Match: W/"c310cd84f0281b7"
+
+   In response to a successful DELETE, the server SHALL return a
+   successful HTTP status code 204 (No Content).  A non-normative
+   example response:
+
+                          HTTP/1.1 204 No Content
+
+   Example: Client's attempt to retrieve the previously deleted User
+
+              GET /Users/2819c223-7f76-453a-919d-413861904646
+              Host: example.com
+              Authorization: Bearer h480djs93hd8
+
+   Server response:
+
+   HTTP/1.1 404 Not Found
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+     "detail":"Resource 2819c223-7f76-453a-919d-413861904646 not found",
+     "status": "404"
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 48]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

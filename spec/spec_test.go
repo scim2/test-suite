@@ -40,16 +40,14 @@ func TestCounts(t *testing.T) {
 func TestCoverage(t *testing.T) {
 	rfcs := []rfcFile{
 		{
-			rfc:  7642,
-			path: "testdata/rfc7642.txt",
+			rfc: 7642,
 			skipRanges: []skipRange{
 				{192, 195, "RFC 2119 boilerplate"},
 				{973, 1067, "references and authors"},
 			},
 		},
 		{
-			rfc:  7643,
-			path: "testdata/rfc7643.txt",
+			rfc: 7643,
 			skipRanges: []skipRange{
 				{207, 215, "RFC 2119 boilerplate"},
 				{1855, 5100, "Section 8: JSON representations (non-normative repeats)"},
@@ -57,8 +55,7 @@ func TestCoverage(t *testing.T) {
 			},
 		},
 		{
-			rfc:  7644,
-			path: "testdata/rfc7644.txt",
+			rfc: 7644,
 			skipRanges: []skipRange{
 				{175, 188, "RFC 2119 boilerplate"},
 				{4560, 4987, "IANA, references, authors"},
@@ -82,14 +79,13 @@ func TestCoverage(t *testing.T) {
 
 	for _, rf := range rfcs {
 		t.Run(fmt.Sprintf("RFC%d", rf.rfc), func(t *testing.T) {
-			f, err := os.Open(rf.path)
+			text, err := RFCText(rf.rfc)
 			if err != nil {
-				t.Fatalf("cannot open %s: %v", rf.path, err)
+				t.Fatalf("loading RFC %d: %v", rf.rfc, err)
 			}
-			defer func() { _ = f.Close() }()
 
 			ranges := covered[rf.rfc]
-			scanner := bufio.NewScanner(f)
+			scanner := bufio.NewScanner(strings.NewReader(text))
 			lineNum := 0
 			uncovered := 0
 
@@ -136,7 +132,7 @@ func TestCoverage(t *testing.T) {
 			}
 
 			if err := scanner.Err(); err != nil {
-				t.Fatalf("error reading %s: %v", rf.path, err)
+				t.Fatalf("error scanning RFC %d: %v", rf.rfc, err)
 			}
 
 			t.Logf("uncovered: %d", uncovered)
@@ -263,10 +259,9 @@ func TestValidRFCs(t *testing.T) {
 	}
 }
 
-// rfcFile describes an RFC txt file and which line ranges to skip.
+// rfcFile describes an RFC and which line ranges to skip.
 type rfcFile struct {
 	rfc        int
-	path       string
 	skipRanges []skipRange
 }
 
@@ -274,4 +269,27 @@ type rfcFile struct {
 type skipRange struct {
 	start, end int
 	reason     string
+}
+
+func TestRFCTextIntegrity(t *testing.T) {
+	origFiles := map[int]string{
+		7642: "testdata/rfc7642.txt",
+		7643: "testdata/rfc7643.txt",
+		7644: "testdata/rfc7644.txt",
+	}
+	for rfc, path := range origFiles {
+		t.Run(fmt.Sprintf("RFC%d", rfc), func(t *testing.T) {
+			assembled, err := RFCText(rfc)
+			if err != nil {
+				t.Fatalf("loading RFC %d: %v", rfc, err)
+			}
+			original, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("reading %s: %v", path, err)
+			}
+			if assembled != string(original) {
+				t.Errorf("assembled text does not match %s", path)
+			}
+		})
+	}
 }

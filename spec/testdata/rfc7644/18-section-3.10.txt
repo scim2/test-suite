@@ -1,0 +1,20 @@
+3.10.  Attribute Notation
+
+   All operations share a common scheme for referencing simple and
+   complex attributes.  In general, attributes are uniquely identified
+   by prefixing the attribute name with its schema URN separated by a
+   colon (":") character; e.g., the core User resource attribute
+   'userName' is identified as
+   "urn:ietf:params:scim:schemas:core:2.0:User:userName".  Clients MAY
+   omit core schema attribute URN prefixes but SHOULD fully qualify
+   extended attributes with the associated schema extension URN to avoid
+   naming conflicts.  For example, the attribute 'age' defined in
+   "urn:ietf:params:scim:schemas:exampleCo:2.0:hr" is uniquely
+   identified as "urn:ietf:params:scim:schemas:exampleCo:2.0:hr:age".
+   Complex attributes' sub-attributes are referenced via nested dot
+   ('.') notation, i.e., {urn}:{Attribute name}.{Sub-Attribute name}.
+   For example, the fully qualified path for a User's givenName is
+   "urn:ietf:params:scim:schemas:core:2.0:User:name.givenName".  All
+   facets (URN, attribute, and sub-attribute name) of the fully encoded
+   attribute name are case insensitive.
+

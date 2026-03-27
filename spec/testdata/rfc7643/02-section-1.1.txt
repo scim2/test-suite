@@ -1,0 +1,33 @@
+1.1.  Requirements Notation and Conventions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in [RFC2119].
+
+   The key words "REQUIRED" and "OPTIONAL" are used throughout this
+   document to indicate whether an attribute or schema element is
+   required or optional.  These key words may be used alone (e.g.,
+   "REQUIRED.") or in a sentence.  If not specified, an attribute is
+   considered to be optional.
+
+   The word "DEFAULT" as used in Section 7 indicates that a "keyword"
+   value for an attribute characteristic is the default behavior.
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 4]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   Throughout this document, values are quoted to indicate that they are
+   to be taken literally.  When using these values in protocol messages,
+   the quotes MUST NOT be used as part of the value.
+
+   Throughout this document, figures may contain spaces and extra line
+   wrapping to improve readability and accommodate space limitations.
+   Similarly, some URIs contained within examples have been shortened
+   for space and readability reasons.
+

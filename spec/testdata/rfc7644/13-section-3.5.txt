@@ -1,0 +1,1035 @@
+3.5.  Modifying Resources
+
+   Resources can be modified in whole or in part using HTTP PUT or HTTP
+   PATCH, respectively.  Implementers MUST support HTTP PUT as specified
+   in Section 4.3 of [RFC7231].  Resources such as Groups may be very
+   large; hence, implementers SHOULD support HTTP PATCH [RFC5789] to
+   enable partial resource modifications.  Service provider support for
+   HTTP PATCH may be discovered by querying the service provider
+   configuration (see Section 4).
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 29]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.5.1.  Replacing with PUT
+
+   HTTP PUT is used to replace a resource's attributes.  For example,
+   clients that have previously retrieved the entire resource in advance
+   and revised it MAY replace the resource using an HTTP PUT.  Because
+   SCIM resource identifiers are assigned by the service provider, HTTP
+   PUT MUST NOT be used to create new resources.
+
+   As the operation's intent is to replace all attributes, SCIM clients
+   MAY send all attributes, regardless of each attribute's mutability.
+   The server will apply attribute-by-attribute replacements according
+   to the following attribute mutability rules:
+
+   readWrite, writeOnly  Any values provided SHALL replace the existing
+      attribute values.
+
+      Attributes whose mutability is "readWrite" that are omitted from
+      the request body MAY be assumed to be not asserted by the client.
+      The service provider MAY assume that any existing values are to be
+      cleared, or the service provider MAY assign a default value to the
+      final resource representation.  Service providers MAY take into
+      account whether or not a client has access to, or understands, all
+      of the resource's attributes when deciding whether non-asserted
+      attributes SHALL be removed or defaulted.  Clients that want to
+      override a server's defaults MAY specify "null" for a
+      single-valued attribute, or an empty array "[]" for a multi-valued
+      attribute, to clear all values.
+
+   immutable  If one or more values are already set for the attribute,
+      the input value(s) MUST match, or HTTP status code 400 SHOULD be
+      returned with a "scimType" error code of "mutability".  If the
+      service provider has no existing values, the new value(s) SHALL be
+      applied.
+
+   readOnly  Any values provided SHALL be ignored.
+
+   If an attribute is "required", clients MUST specify the attribute in
+   the PUT request.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 30]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Unless otherwise specified, a successful PUT operation returns a 200
+   OK response code and the entire resource within the response body,
+   enabling the client to correlate the client's and the service
+   provider's views of the updated resource.  For example:
+
+   PUT /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "userName":"bjensen",
+     "externalId":"bjensen",
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara",
+       "middleName":"Jane"
+     },
+     "roles":[],
+     "emails":[
+       {
+           "value":"bjensen@example.com"
+       },
+       {
+           "value":"babs@jensen.org"
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 31]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The service responds with the entire updated User:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+   ETag: W/"b431af54f0671a2"
+   Location:
+     "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "userName":"bjensen",
+     "externalId":"bjensen",
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara",
+       "middleName":"Jane"
+     },
+     "emails":[
+       {
+           "value":"bjensen@example.com"
+       },
+       {
+           "value":"babs@jensen.org"
+       }
+     ],
+     "meta": {
+       "resourceType":"User",
+       "created":"2011-08-08T04:56:22Z",
+       "lastModified":"2011-08-08T08:00:12Z",
+       "location":
+   "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
+       "version":"W\/\"b431af54f0671a2\""
+     }
+   }
+
+3.5.2.  Modifying with PATCH
+
+   HTTP PATCH is an OPTIONAL server function that enables clients to
+   update one or more attributes of a SCIM resource using a sequence of
+   operations to "add", "remove", or "replace" values.  Clients may
+   discover service provider support for PATCH by querying the service
+   provider configuration (see Section 4).
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 32]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The general form of the SCIM PATCH request is based on JSON Patch
+   [RFC6902].  One difference between SCIM PATCH and JSON Patch is that
+   SCIM servers do not support array indexing and do not support
+   [RFC6902] operation types relating to array element manipulation,
+   such as "move".
+
+   The body of each request MUST contain the "schemas" attribute with
+   the URI value of "urn:ietf:params:scim:api:messages:2.0:PatchOp".
+
+   The body of an HTTP PATCH request MUST contain the attribute
+   "Operations", whose value is an array of one or more PATCH
+   operations.  Each PATCH operation object MUST have exactly one "op"
+   member, whose value indicates the operation to perform and MAY be one
+   of "add", "remove", or "replace".  The semantics of each operation
+   are defined in the following subsections.
+
+   The following is an example representation of a PATCH request showing
+   the basic JSON structure (non-normative):
+
+   { "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations":[
+       {
+        "op":"add",
+        "path":"members",
+        "value":[
+         {
+           "display": "Babs Jensen",
+           "$ref":
+   "https://example.com/v2/Users/2819c223...413861904646",
+           "value": "2819c223-7f76-453a-919d-413861904646"
+         }
+        ]
+       },
+       ... + additional operations if needed ...
+     ]
+   }
+
+            Figure 6: Example JSON Body for SCIM PATCH Request
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 33]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The "path" attribute value is a String containing an attribute path
+   describing the target of the operation.  The "path" attribute is
+   OPTIONAL for "add" and "replace" and is REQUIRED for "remove"
+   operations.  See relevant operation sections below for details.
+
+   The "path" attribute is described by the following ABNF syntax rule:
+
+                   PATH = attrPath / valuePath [subAttr]
+
+                      Figure 7: SCIM PATCH PATH Rule
+
+   The ABNF rules "attrPath", "valuePath", and "subAttr" are defined in
+   Section 3.4.2.2.  The "valuePath" rule allows specific values of a
+   complex multi-valued attribute to be selected.
+
+   Valid examples of "path" are as follows:
+
+       "path":"members"
+
+       "path":"name.familyName"
+
+       "path":"addresses[type eq \"work\"]"
+
+       "path":"members[value eq
+              \"2819c223-7f76-453a-919d-413861904646\"]"
+
+       "path":"members[value eq
+              \"2819c223-7f76-453a-919d-413861904646\"].displayName"
+
+                       Figure 8: Example Path Values
+
+   Each operation against an attribute MUST be compatible with the
+   attribute's mutability and schema as defined in Sections 2.2 and 2.3
+   of [RFC7643].  For example, a client MUST NOT modify an attribute
+   that has mutability "readOnly" or "immutable".  However, a client MAY
+   "add" a value to an "immutable" attribute if the attribute had no
+   previous value.  An operation that is not compatible with an
+   attribute's mutability or schema SHALL return the appropriate HTTP
+   response status code and a JSON detail error response as defined in
+   Section 3.12.
+
+   The attribute notation rules described in Section 3.10 apply for
+   describing attribute paths.  For all operations, the value of the
+   "schemas" attribute on the SCIM service provider's representation of
+   the resource SHALL be assumed by default.  If one of the PATCH
+   operations modifies the "schemas" attribute, subsequent operations
+   SHALL assume the modified state of the "schemas" attribute.  Clients
+   MAY implicitly modify the "schemas" attribute by adding (or
+
+
+
+Hunt, et al.                 Standards Track                   [Page 34]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   replacing) an attribute with its fully qualified name, including
+   schema URN.  For example, adding the attribute "urn:ietf:params:scim:
+   schemas:extension:enterprise:2.0:User:employeeNumber" automatically
+   adds the value
+   "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User" to the
+   resource's "schemas" attribute.
+
+   Each PATCH operation represents a single action to be applied to the
+   same SCIM resource specified by the request URI.  Operations are
+   applied sequentially in the order they appear in the array.  Each
+   operation in the sequence is applied to the target resource; the
+   resulting resource becomes the target of the next operation.
+   Evaluation continues until all operations are successfully applied or
+   until an error condition is encountered.
+
+   For multi-valued attributes, a PATCH operation that sets a value's
+   "primary" sub-attribute to "true" SHALL cause the server to
+   automatically set "primary" to "false" for any other values in the
+   array.
+
+   A PATCH request, regardless of the number of operations, SHALL be
+   treated as atomic.  If a single operation encounters an error
+   condition, the original SCIM resource MUST be restored, and a failure
+   status SHALL be returned.
+
+   If a request fails, the server SHALL return an HTTP response status
+   code and a JSON detail error response as defined in Section 3.12.
+
+   On successful completion, the server either MUST return a 200 OK
+   response code and the entire resource within the response body,
+   subject to the "attributes" query parameter (see Section 3.9), or MAY
+   return HTTP status code 204 (No Content) and the appropriate response
+   headers for a successful PATCH request.  The server MUST return a 200
+   OK if the "attributes" parameter is specified in the request.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 35]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.5.2.1.  Add Operation
+
+   The "add" operation is used to add a new attribute value to an
+   existing resource.
+
+   The operation MUST contain a "value" member whose content specifies
+   the value to be added.  The value MAY be a quoted value, or it may be
+   a JSON object containing the sub-attributes of the complex attribute
+   specified in the operation's "path".
+
+   The result of the add operation depends upon what the target location
+   indicated by "path" references:
+
+   o  If omitted, the target location is assumed to be the resource
+      itself.  The "value" parameter contains a set of attributes to be
+      added to the resource.
+
+   o  If the target location does not exist, the attribute and value are
+      added.
+
+   o  If the target location specifies a complex attribute, a set of
+      sub-attributes SHALL be specified in the "value" parameter.
+
+   o  If the target location specifies a multi-valued attribute, a new
+      value is added to the attribute.
+
+   o  If the target location specifies a single-valued attribute, the
+      existing value is replaced.
+
+   o  If the target location specifies an attribute that does not exist
+      (has no value), the attribute is added with the new value.
+
+   o  If the target location exists, the value is replaced.
+
+   o  If the target location already contains the value specified, no
+      changes SHOULD be made to the resource, and a success response
+      SHOULD be returned.  Unless other operations change the resource,
+      this operation SHALL NOT change the modify timestamp of the
+      resource.
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 36]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to add a member to a group.  Some
+   text was removed for readability (indicated by "..."):
+
+   PATCH /Groups/acbf3ae7-8463-...-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   { "schemas":
+      ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations":[
+       {
+        "op":"add",
+        "path":"members",
+        "value":[
+         {
+           "display": "Babs Jensen",
+           "$ref":
+   "https://example.com/v2/Users/2819c223...413861904646",
+           "value": "2819c223-7f76-453a-919d-413861904646"
+         }
+        ]
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 37]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   If the user was already a member of this group, no changes should be
+   made to the resource, and a success response should be returned.
+   The server responds with either the entire updated Group or no
+   response body:
+
+   HTTP/1.1 204 No Content
+   Authorization: Bearer h480djs93hd8
+   ETag: W/"b431af54f0671a2"
+   Location:
+   "https://example.com/Groups/acbf3ae7-8463-...-9b4da3f908ce"
+
+   The following example shows how to add one or more attributes to a
+   User resource without using a "path" attribute.
+
+   PATCH /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations":[{
+       "op":"add",
+       "value":{
+         "emails":[
+           {
+             "value":"babs@jensen.org",
+             "type":"home"
+           }
+         ],
+         "nickname":"Babs"
+     }]
+   }
+
+   In the above example, an additional value is added to the
+   multi-valued attribute "emails".  The second attribute, "nickname",
+   is added to the User resource.  If the resource already had an
+   existing "nickname", the value is replaced per the processing rules
+   above for single-valued attributes.
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 38]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.5.2.2.  Remove Operation
+
+   The "remove" operation removes the value at the target location
+   specified by the required attribute "path".  The operation performs
+   the following functions, depending on the target location specified
+   by "path":
+
+   o  If "path" is unspecified, the operation fails with HTTP status
+      code 400 and a "scimType" error code of "noTarget".
+
+   o  If the target location is a single-value attribute, the attribute
+      and its associated value is removed, and the attribute SHALL be
+      considered unassigned.
+
+   o  If the target location is a multi-valued attribute and no filter
+      is specified, the attribute and all values are removed, and the
+      attribute SHALL be considered unassigned.
+
+   o  If the target location is a multi-valued attribute and a complex
+      filter is specified comparing a "value", the values matched by the
+      filter are removed.  If no other values remain after removal of
+      the selected values, the multi-valued attribute SHALL be
+      considered unassigned.
+
+   o  If the target location is a complex multi-valued attribute and a
+      complex filter is specified based on the attribute's
+      sub-attributes, the matching records are removed.  Sub-attributes
+      whose values have been removed SHALL be considered unassigned.  If
+      the complex multi-valued attribute has no remaining records, the
+      attribute SHALL be considered unassigned.
+
+   If an attribute is removed or becomes unassigned and is defined as a
+   required attribute or a read-only attribute, the server SHALL return
+   an HTTP response status code and a JSON detail error response as
+   defined in Section 3.12, with a "scimType" error code of
+   "mutability".
+
+   The following example shows how to remove a member from a group.  As
+   with the previous example, the "display" sub-attribute is optional.
+   If the user was not a member of this group, no changes should be made
+   to the resource, and a success response should be returned.
+
+   Note that server responses have been omitted for the rest of the
+   PATCH examples.
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 39]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Remove a single member from a group.  Some text was removed for
+   readability (indicated by "..."):
+
+   PATCH /Groups/acbf3ae7-8463-...-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+      ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations":[{
+       "op":"remove",
+       "path":"members[value eq \"2819c223-7f76-...413861904646\"]"
+     }]
+   }
+
+   Remove all members of a group:
+
+   PATCH /Groups/acbf3ae7-8463-...-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   { "schemas":
+      ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations":[{
+       "op":"remove","path":"members"
+     }]
+   }
+
+   Removal of a value from a complex multi-valued attribute (request
+   headers removed for brevity):
+
+   {
+     "schemas":
+      ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [{
+     "op":"remove",
+     "path":"emails[type eq \"work\" and value ew \"example.com\"]"
+     }]
+   }
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 40]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Example request to remove and add a member.  Some text was removed
+   for readability (indicated by "..."):
+
+   PATCH /Groups/acbf3ae7-8463-...-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   { "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [
+       {
+         "op":"remove",
+         "path":
+           "members[value eq\"2819c223...919d-413861904646\"]"
+       },
+       {
+         "op":"add",
+         "path":"members",
+         "value": [
+           {
+             "display": "James Smith",
+             "$ref":
+   "https://example.com/v2/Users/08e1d05d...473d93df9210",
+             "value": "08e1d05d...473d93df9210"
+           }
+         ]
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 41]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to replace all of the members of a
+   group with a different members list.  Some text was removed for
+   readability (indicated by "..."):
+
+   PATCH /Groups/acbf3ae7-8463-4692-b4fd-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [
+       {
+         "op":"remove","path":"members"
+       },
+       {
+         "op":"add",
+         "path":"members",
+         "value":[
+         {
+           "display": "Babs Jensen",
+           "$ref":
+   "https://example.com/v2/Users/2819c223...413861904646",
+           "value": "2819c223-7f76-453a-919d-413861904646"
+         },
+         {
+           "display": "James Smith",
+           "$ref":
+   "https://example.com/v2/Users/08e1d05d...473d93df9210",
+           "value": "08e1d05d-121c-4561-8b96-473d93df9210"
+         }]
+       }
+     ]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 42]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.5.2.3.  Replace Operation
+
+   The "replace" operation replaces the value at the target location
+   specified by the "path".  The operation performs the following
+   functions, depending on the target location specified by "path":
+
+   o  If the "path" parameter is omitted, the target is assumed to be
+      the resource itself.  In this case, the "value" attribute SHALL
+      contain a list of one or more attributes that are to be replaced.
+
+   o  If the target location is a single-value attribute, the attributes
+      value is replaced.
+
+   o  If the target location is a multi-valued attribute and no filter
+      is specified, the attribute and all values are replaced.
+
+   o  If the target location path specifies an attribute that does not
+      exist, the service provider SHALL treat the operation as an "add".
+
+   o  If the target location specifies a complex attribute, a set of
+      sub-attributes SHALL be specified in the "value" parameter, which
+      replaces any existing values or adds where an attribute did not
+      previously exist.  Sub-attributes that are not specified in the
+      "value" parameter are left unchanged.
+
+   o  If the target location is a multi-valued attribute and a value
+      selection ("valuePath") filter is specified that matches one or
+      more values of the multi-valued attribute, then all matching
+      record values SHALL be replaced.
+
+   o  If the target location is a complex multi-valued attribute with a
+      value selection filter ("valuePath") and a specific sub-attribute
+      (e.g., "addresses[type eq "work"].streetAddress"), the matching
+      sub-attribute of all matching records is replaced.
+
+   o  If the target location is a multi-valued attribute for which a
+      value selection filter ("valuePath") has been supplied and no
+      record match was made, the service provider SHALL indicate failure
+      by returning HTTP status code 400 and a "scimType" error code of
+      "noTarget".
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 43]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to replace all of the members of a
+   group with a different members list in a single replace operation.
+   Some text was removed for readability (indicated by "..."):
+
+   PATCH /Groups/acbf3ae7-8463-4692-b4fd-9b4da3f908ce
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [{
+       "op":"replace",
+       "path":"members",
+       "value":[
+         {
+           "display": "Babs Jensen",
+           "$ref":
+   "https://example.com/v2/Users/2819c223...413861904646",
+           "value": "2819c223...413861904646"
+         },
+         {
+           "display": "James Smith",
+           "$ref":
+   "https://example.com/v2/Users/08e1d05d...473d93df9210",
+           "value": "08e1d05d...473d93df9210"
+         }
+       ]
+     }]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 44]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to change a User's entire "work"
+   address, using a "valuePath" filter.  Note that by setting "primary"
+   to "true", the service provider will reset "primary" to "false" for
+   any other existing values of "addresses".
+
+   PATCH /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [{
+       "op":"replace",
+       "path":"addresses[type eq \"work\"]",
+       "value":
+       {
+         "type": "work",
+         "streetAddress": "911 Universal City Plaza",
+         "locality": "Hollywood",
+         "region": "CA",
+         "postalCode": "91608",
+         "country": "US",
+         "formatted":
+   "911 Universal City Plaza\nHollywood, CA 91608 US",
+         "primary": true
+       }
+     }]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 45]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to change a specific sub-attribute
+   "streetAddress" of complex attribute "emails" selected by a
+   "valuePath" filter:
+
+   PATCH /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [{
+       "op":"replace",
+       "path":"addresses[type eq \"work\"].streetAddress",
+       "value":"1010 Broadway Ave"
+     }]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 46]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following example shows how to replace all values of one or more
+   specific attributes of a User resource.  Note that other attributes
+   are unaffected.
+
+   PATCH /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   If-Match: W/"a330bc54f0671c9"
+
+   {
+     "schemas":
+       ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+     "Operations": [{
+       "op":"replace",
+       "value":{
+         "emails":[
+           {
+             "value":"bjensen@example.com",
+             "type":"work",
+             "primary":true
+           },
+           {
+             "value":"babs@jensen.org",
+             "type":"home"
+           }
+         ],
+         "nickname":"Babs"
+     }]
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 47]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

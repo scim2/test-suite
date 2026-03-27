@@ -10,6 +10,19 @@ func init() {
 	All = append(All, RFC7644...)
 }
 
+// concat joins multiple requirement slices into one.
+func concat(slices ...[]Requirement) []Requirement {
+	n := 0
+	for _, s := range slices {
+		n += len(s)
+	}
+	out := make([]Requirement, 0, n)
+	for _, s := range slices {
+		out = append(out, s...)
+	}
+	return out
+}
+
 // ByFeature returns all requirements that belong to the given feature.
 func ByFeature(f Feature) []Requirement {
 	var out []Requirement

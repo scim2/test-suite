@@ -1,0 +1,66 @@
+3.1.  Background
+
+   SCIM is a protocol that is based on HTTP [RFC7230].  Along with HTTP
+   headers and URIs, SCIM uses JSON [RFC7159] payloads to convey SCIM
+   resources, as well as protocol-specific payload messages that convey
+   request parameters and response information such as errors.  Both
+   resources and messages are passed in the form of JSON-based
+   structures in the message body of an HTTP request or response.  To
+   identify this content, SCIM uses a media type of
+   "application/scim+json" (see Section 8.1).
+
+   A SCIM "resource" is a JSON object [RFC7159] that may be created,
+   maintained, and retrieved via HTTP request methods as described in
+   this document.  Each JSON resource representation contains a
+   "schemas" attribute that contains a list of one or more URIs that
+   indicate included SCIM schemas that are used to indicate the
+   attributes contained within a resource.  Specific information about
+   what attributes are defined within a schema MAY be obtained by
+   querying a SCIM service provider's "/Schemas" endpoint for a schema
+   definition (see Section 8.7 of [RFC7643]).  Responses from this
+   endpoint describe the schema supported by a service provider,
+   including attribute characteristics such as cardinality,
+   case-exactness, mutability, uniqueness, returnability, and whether or
+   not attributes are required.  While SCIM schemas and an associated
+   extension model are defined in [RFC7643], SCIM clients should expect
+   that some attribute schema may change from service provider to
+   service provider, particularly across administrative domains.  In
+   cases where SCIM may be used as an open protocol in front of an
+   application service, it is quite reasonable to expect that some
+   service providers may only support a subset of the schema defined in
+   [RFC7643].
+
+   A SCIM message conveys protocol parameters related to a SCIM request
+   or response; this specification defines these parameters.  As with a
+   SCIM resource, a SCIM message is a JSON object [RFC7159] that
+   contains a "schemas" attribute with a URI whose namespace prefix MUST
+   begin with "urn:ietf:params:scim:api:".  As SCIM protocol messages
+   are fixed and defined by SCIM specifications and registered
+   extensions, SCIM message schemas using the above prefix URN SHALL NOT
+   be discoverable using the "/Schemas" endpoint.
+
+   As SCIM is intended for use in cross-domain scenarios where schema
+   and implementations may vary, techniques such as document validation
+   (e.g., [XML-Schema]) are not recommended.  A SCIM service provider
+   interprets a request in the context of its own schema (which may be
+   different from the client's schema) and following the defined
+
+
+
+Hunt, et al.                 Standards Track                    [Page 8]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   processing rules for each request.  The sections that follow define
+   the processing rules for SCIM and provide allowances for schema
+   differences where appropriate.  For example, in a SCIM PUT request,
+   "readOnly" attributes are ignored, while "readWrite" attributes are
+   updated.  There is no need for a SCIM client to discover which
+   attributes are "readOnly", and the client does not need to remove
+   them from a PUT request in order to be accepted.  Similarly, a SCIM
+   client SHOULD NOT expect a service provider to return SCIM resources
+   with exactly the same schema and values as submitted.  SCIM responses
+   SHALL reflect resource state as interpreted by the SCIM service
+   provider.
+

@@ -1,0 +1,887 @@
+3.4.  Retrieving Resources
+
+   Resources MAY be retrieved via opaque, unique URLs or via queries
+   (see Section 3.4.2).  The attributes returned are defined in the
+   server's attribute schema (see Section 8.7 of [RFC7643]) and may be
+   modified by request parameters (see Section 3.9).  By default,
+   resource attributes returned in a response are those attributes whose
+   characteristic "returned" setting is "always" or "default" (see
+   Section 2.2 of [RFC7643]).
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 13]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.4.1.  Retrieving a Known Resource
+
+   To retrieve a known resource, clients send GET requests to the
+   resource endpoint, e.g., "/Users/{id}", "/Groups/{id}", or
+   "/Schemas/{id}", where "{id}" is a resource identifier (for example,
+   the value of the "id" attribute).
+
+   If the resource exists, the server responds with HTTP status code 200
+   (OK) and includes the result in the body of the response.
+
+   The example below retrieves a single User via the "/Users" endpoint.
+
+   GET /Users/2819c223-7f76-453a-919d-413861904646
+   Host: example.com
+   Accept: application/scim+json
+   Authorization: Bearer h480djs93hd8
+
+   The server responds with:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+   Location:
+     https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
+   ETag: W/"f250dd84f0671c3"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "externalId":"bjensen",
+     "meta":{
+       "resourceType":"User",
+       "created":"2011-08-01T18:29:49.793Z",
+       "lastModified":"2011-08-01T18:29:49.793Z",
+       "location":
+   "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
+       "version":"W\/\"f250dd84f0671c3\""
+     },
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara"
+     },
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 14]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+     "userName":"bjensen",
+     "phoneNumbers":[
+       {
+         "value":"555-555-8377",
+         "type":"work"
+       }
+     ],
+     "emails":[
+       {
+         "value":"bjensen@example.com",
+         "type":"work"
+       }
+     ]
+   }
+
+3.4.2.  Query Resources
+
+   The SCIM protocol defines a standard set of query parameters that can
+   be used to filter, sort, and paginate to return zero or more
+   resources in a query response.  Queries MAY be made against a single
+   resource or a resource type endpoint (e.g., "/Users"), or the service
+   provider Base URI.  SCIM service providers MAY support additional
+   query parameters not specified here and SHOULD ignore any query
+   parameters they do not recognize instead of rejecting the query for
+   versioning compatibility reasons.
+
+   Responses MUST be identified using the following URI:
+   "urn:ietf:params:scim:api:messages:2.0:ListResponse".  The following
+   attributes are defined for responses:
+
+   totalResults  The total number of results returned by the list or
+      query operation.  The value may be larger than the number of
+      resources returned, such as when returning a single page (see
+      Section 3.4.2.4) of results where multiple pages are available.
+      REQUIRED.
+
+   Resources  A multi-valued list of complex objects containing the
+      requested resources.  This MAY be a subset of the full set of
+      resources if pagination (Section 3.4.2.4) is requested.  REQUIRED
+      if "totalResults" is non-zero.
+
+   startIndex  The 1-based index of the first result in the current set
+      of list results.  REQUIRED when partial results are returned due
+      to pagination.
+
+   itemsPerPage  The number of resources returned in a list response
+      page.  REQUIRED when partial results are returned due to
+      pagination.
+
+
+
+Hunt, et al.                 Standards Track                   [Page 15]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   A query that does not return any matches SHALL return success (HTTP
+   status code 200) with "totalResults" set to a value of 0.
+
+   The example query below requests the userName for all Users:
+
+   GET /Users?attributes=userName
+   Host: example.com
+   Accept: application/scim+json
+   Authorization: Bearer h480djs93hd8
+
+   The following is an example response to the query above:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+
+   {
+     "schemas":["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+     "totalResults":2,
+     "Resources":[
+       {
+         "id":"2819c223-7f76-453a-919d-413861904646",
+         "userName":"bjensen"
+       },
+       {
+         "id":"c75ad752-64ae-4823-840d-ffa80929976c",
+         "userName":"jsmith"
+       }
+     ]
+   }
+
+   Note that in the above example, "id" is returned because the "id"
+   attribute has the "returned" characteristic of "always".
+
+3.4.2.1.  Query Endpoints
+
+   Queries MAY be performed against a SCIM resource object, a resource
+   type endpoint, or a SCIM server root.  For example:
+
+      "/Users/{id}"
+
+      "/Users"
+
+      "/Groups"
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 16]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   A query against a server root indicates that all resources within the
+   server SHALL be included, subject to filtering.  A filter expression
+   using "meta.resourceType" MAY be used to restrict results to one or
+   more specific resource types (to exclude others).  For example:
+
+   filter=(meta.resourceType eq User) or (meta.resourceType eq Group)
+
+   If a SCIM service provider determines that too many results would be
+   returned (e.g., because a client queried a resource type endpoint or
+   the server base URI), the server SHALL reject the request by
+   returning an HTTP response with HTTP status code 400 (Bad Request)
+   and JSON attribute "scimType" set to "tooMany" (see Table 9).
+
+   When processing query operations using endpoints that include more
+   than one SCIM resource type (e.g., a query from the server root
+   endpoint), filters MUST be processed as outlined in Section 3.4.2.2.
+   For filtered attributes that are not part of a particular resource
+   type, the service provider SHALL treat the attribute as if there is
+   no attribute value.  For example, a presence or equality filter for
+   an undefined attribute evaluates to false.
+
+3.4.2.2.  Filtering
+
+   Filtering is an OPTIONAL parameter for SCIM service providers.
+   Clients MAY discover service provider filter capabilities by looking
+   at the "filter" attribute of the "ServiceProviderConfig" endpoint
+   (see Section 4).  Clients MAY request a subset of resources by
+   specifying the "filter" query parameter containing a filter
+   expression.  When specified, only those resources matching the filter
+   expression SHALL be returned.  The expression language that is used
+   with the filter parameter supports references to attributes and
+   literals.
+
+   Attribute names and attribute operators used in filters are case
+   insensitive.  For example, the following two expressions will
+   evaluate to the same logical value:
+
+   filter=userName Eq "john"
+
+   filter=Username eq "john"
+
+   The filter parameter MUST contain at least one valid expression (see
+   Table 3).  Each expression MUST contain an attribute name followed by
+   an attribute operator and optional value.  Multiple expressions MAY
+   be combined using logical operators (see Table 4).  Expressions MAY
+   be grouped together using round brackets "(" and ")" (see Table 5).
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 17]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The operators supported in the expression are listed in Table 3.
+
+   +----------+-------------+------------------------------------------+
+   | Operator | Description | Behavior                                 |
+   +----------+-------------+------------------------------------------+
+   | eq       | equal       | The attribute and operator values must   |
+   |          |             | be identical for a match.                |
+   |          |             |                                          |
+   | ne       | not equal   | The attribute and operator values are    |
+   |          |             | not identical.                           |
+   |          |             |                                          |
+   | co       | contains    | The entire operator value must be a      |
+   |          |             | substring of the attribute value for a   |
+   |          |             | match.                                   |
+   |          |             |                                          |
+   | sw       | starts with | The entire operator value must be a      |
+   |          |             | substring of the attribute value,        |
+   |          |             | starting at the beginning of the         |
+   |          |             | attribute value.  This criterion is      |
+   |          |             | satisfied if the two strings are         |
+   |          |             | identical.                               |
+   |          |             |                                          |
+   | ew       | ends with   | The entire operator value must be a      |
+   |          |             | substring of the attribute value,        |
+   |          |             | matching at the end of the attribute     |
+   |          |             | value.  This criterion is satisfied if   |
+   |          |             | the two strings are identical.           |
+   |          |             |                                          |
+   | pr       | present     | If the attribute has a non-empty or      |
+   |          | (has value) | non-null value, or if it contains a      |
+   |          |             | non-empty node for complex attributes,   |
+   |          |             | there is a match.                        |
+   |          |             |                                          |
+   | gt       | greater     | If the attribute value is greater than   |
+   |          | than        | the operator value, there is a match.    |
+   |          |             | The actual comparison is dependent on    |
+   |          |             | the attribute type.  For string          |
+   |          |             | attribute types, this is a               |
+   |          |             | lexicographical comparison, and for      |
+   |          |             | DateTime types, it is a chronological    |
+   |          |             | comparison.  For integer attributes, it  |
+   |          |             | is a comparison by numeric value.        |
+   |          |             | Boolean and Binary attributes SHALL      |
+   |          |             | cause a failed response (HTTP status     |
+   |          |             | code 400) with "scimType" of             |
+   |          |             | "invalidFilter".                         |
+   |          |             |                                          |
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 18]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   | ge       | greater     | If the attribute value is greater than   |
+   |          | than or     | or equal to the operator value, there is |
+   |          | equal to    | a match.  The actual comparison is       |
+   |          |             | dependent on the attribute type.  For    |
+   |          |             | string attribute types, this is a        |
+   |          |             | lexicographical comparison, and for      |
+   |          |             | DateTime types, it is a chronological    |
+   |          |             | comparison.  For integer attributes, it  |
+   |          |             | is a comparison by numeric value.        |
+   |          |             | Boolean and Binary attributes SHALL      |
+   |          |             | cause a failed response (HTTP status     |
+   |          |             | code 400) with "scimType" of             |
+   |          |             | "invalidFilter".                         |
+   |          |             |                                          |
+   | lt       | less than   | If the attribute value is less than the  |
+   |          |             | operator value, there is a match.  The   |
+   |          |             | actual comparison is dependent on the    |
+   |          |             | attribute type.  For string attribute    |
+   |          |             | types, this is a lexicographical         |
+   |          |             | comparison, and for DateTime types, it   |
+   |          |             | is a chronological comparison.  For      |
+   |          |             | integer attributes, it is a comparison   |
+   |          |             | by numeric value.  Boolean and Binary    |
+   |          |             | attributes SHALL cause a failed response |
+   |          |             | (HTTP status code 400) with "scimType"   |
+   |          |             | of "invalidFilter".                      |
+   |          |             |                                          |
+   | le       | less than   | If the attribute value is less than or   |
+   |          | or equal to | equal to the operator value, there is a  |
+   |          |             | match.  The actual comparison is         |
+   |          |             | dependent on the attribute type.  For    |
+   |          |             | string attribute types, this is a        |
+   |          |             | lexicographical comparison, and for      |
+   |          |             | DateTime types, it is a chronological    |
+   |          |             | comparison.  For integer attributes, it  |
+   |          |             | is a comparison by numeric value.        |
+   |          |             | Boolean and Binary attributes SHALL      |
+   |          |             | cause a failed response (HTTP status     |
+   |          |             | code 400) with "scimType" of             |
+   |          |             | "invalidFilter".                         |
+   +----------+-------------+------------------------------------------+
+
+                       Table 3: Attribute Operators
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 19]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   +----------+-------------+------------------------------------------+
+   | Operator | Description | Behavior                                 |
+   +----------+-------------+------------------------------------------+
+   | and      | Logical     | The filter is only a match if both       |
+   |          | "and"       | expressions evaluate to true.            |
+   |          |             |                                          |
+   | or       | Logical     | The filter is a match if either          |
+   |          | "or"        | expression evaluates to true.            |
+   |          |             |                                          |
+   | not      | "Not"       | The filter is a match if the expression  |
+   |          | function    | evaluates to false.                      |
+   +----------+-------------+------------------------------------------+
+
+                        Table 4: Logical Operators
+
+
+   +----------+-------------+------------------------------------------+
+   | Operator | Description | Behavior                                 |
+   +----------+-------------+------------------------------------------+
+   | ( )      | Precedence  | Boolean expressions MAY be grouped using |
+   |          | grouping    | parentheses to change the standard order |
+   |          |             | of operations, i.e., to evaluate logical |
+   |          |             | "or" operators before logical "and"      |
+   |          |             | operators.                               |
+   |          |             |                                          |
+   | [ ]      | Complex     | Service providers MAY support complex    |
+   |          | attribute   | filters where expressions MUST be        |
+   |          | filter      | applied to the same value of a parent    |
+   |          | grouping    | attribute specified immediately before   |
+   |          |             | the left square bracket ("[").  The      |
+   |          |             | expression within square brackets ("["   |
+   |          |             | and "]") MUST be a valid filter          |
+   |          |             | expression based upon sub-attributes of  |
+   |          |             | the parent attribute.  Nested            |
+   |          |             | expressions MAY be used.  See examples   |
+   |          |             | below.                                   |
+   +----------+-------------+------------------------------------------+
+
+                        Table 5: Grouping Operators
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 20]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   SCIM filters MUST conform to the following ABNF [RFC5234] rules as
+   specified below:
+
+     FILTER    = attrExp / logExp / valuePath / *1"not" "(" FILTER ")"
+
+     valuePath = attrPath "[" valFilter "]"
+                 ; FILTER uses sub-attributes of a parent attrPath
+
+     valFilter = attrExp / logExp / *1"not" "(" valFilter ")"
+
+     attrExp   = (attrPath SP "pr") /
+                 (attrPath SP compareOp SP compValue)
+
+     logExp    = FILTER SP ("and" / "or") SP FILTER
+
+     compValue = false / null / true / number / string
+                 ; rules from JSON (RFC 7159)
+
+     compareOp = "eq" / "ne" / "co" /
+                        "sw" / "ew" /
+                        "gt" / "lt" /
+                        "ge" / "le"
+
+     attrPath  = [URI ":"] ATTRNAME *1subAttr
+                 ; SCIM attribute name
+                 ; URI is SCIM "schema" URI
+
+     ATTRNAME  = ALPHA *(nameChar)
+
+     nameChar  = "-" / "_" / DIGIT / ALPHA
+
+     subAttr   = "." ATTRNAME
+                 ; a sub-attribute of a complex attribute
+
+               Figure 1: ABNF Specification of SCIM Filters
+
+   In the above ABNF rules, the "compValue" (comparison value) rule is
+   built on JSON Data Interchange format ABNF rules as specified in
+   [RFC7159], "DIGIT" and "ALPHA" are defined per Appendix B.1 of
+   [RFC5234], and "URI" is defined per Appendix A of [RFC3986].
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 21]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Filters MUST be evaluated using the following order of operations, in
+   order of precedence:
+
+   1.  Grouping operators
+
+   2.  Logical operators - where "not" takes precedence over "and",
+       which takes precedence over "or"
+
+   3.  Attribute operators
+
+   If the specified attribute in a filter expression is a multi-valued
+   attribute, the filter matches if any of the values of the specified
+   attribute match the specified criterion; e.g., if a User has multiple
+   "emails" values, only one has to match for the entire User to match.
+   For complex attributes, a fully qualified sub-attribute MUST be
+   specified using standard attribute notation (Section 3.10).  For
+   example, to filter by userName, the parameter value is "userName".
+   To filter by first name, the parameter value is "name.givenName".
+
+   When applying a comparison (e.g., "eq") or presence filter (e.g.,
+   "pr") to a defaulted attribute, the service provider SHALL use the
+   value that was returned to the client that last created or modified
+   the attribute.
+
+   Providers MAY support additional filter operations if they choose.
+   Providers MUST decline to filter results if the specified filter
+   operation is not recognized and return an HTTP 400 error with a
+   "scimType" error of "invalidFilter" and an appropriate human-readable
+   response as per Section 3.12.  For example, if a client specified an
+   unsupported operator named 'regex', the service provider should
+   specify an error response description identifying the client error,
+   e.g., 'The operator 'regex' is not supported.'
+
+   When comparing attributes of type String, the case sensitivity for
+   String type attributes SHALL be determined by the attribute's
+   "caseExact" characteristic (see Section 2.2 of [RFC7643]).
+
+   Clients MAY query by schema or schema extensions by using a filter
+   expression including the "schemas" attribute (as shown in Figure 2).
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 22]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The following are examples of valid filters.  Some attributes (e.g.,
+   rooms and rooms.number) are hypothetical extensions and are not part
+   of the SCIM core schema:
+
+filter=userName eq "bjensen"
+
+filter=name.familyName co "O'Malley"
+
+filter=userName sw "J"
+
+filter=urn:ietf:params:scim:schemas:core:2.0:User:userName sw "J"
+
+filter=title pr
+
+filter=meta.lastModified gt "2011-05-13T04:42:34Z"
+
+filter=meta.lastModified ge "2011-05-13T04:42:34Z"
+
+filter=meta.lastModified lt "2011-05-13T04:42:34Z"
+
+filter=meta.lastModified le "2011-05-13T04:42:34Z"
+
+filter=title pr and userType eq "Employee"
+
+filter=title pr or userType eq "Intern"
+
+filter=
+ schemas eq "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+
+filter=userType eq "Employee" and (emails co "example.com" or
+  emails.value co "example.org")
+
+filter=userType ne "Employee" and not (emails co "example.com" or
+  emails.value co "example.org")
+
+filter=userType eq "Employee" and (emails.type eq "work")
+
+filter=userType eq "Employee" and emails[type eq "work" and
+  value co "@example.com"]
+
+filter=emails[type eq "work" and value co "@example.com"] or
+  ims[type eq "xmpp" and value co "@foo.com"]
+
+                         Figure 2: Example Filters
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 23]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.4.2.3.  Sorting
+
+   Sort is OPTIONAL.  Clients MAY discover sort capability by looking at
+   the "sort" attribute of the service provider configuration (see
+   Section 4).  Sorting allows clients to specify the order in which
+   resources are returned by specifying a combination of "sortBy" and
+   "sortOrder" URL parameters.
+
+   sortBy  The "sortBy" parameter specifies the attribute whose value
+      SHALL be used to order the returned responses.  If the "sortBy"
+      attribute corresponds to a singular attribute, resources are
+      sorted according to that attribute's value; if it's a multi-valued
+      attribute, resources are sorted by the value of the primary
+      attribute (see Section 2.4 of [RFC7643]), if any, or else the
+      first value in the list, if any.  If the attribute is complex, the
+      attribute name must be a path to a sub-attribute in standard
+      attribute notation (Section 3.10), e.g., "sortBy=name.givenName".
+      For all attribute types, if there is no data for the specified
+      "sortBy" value, they are sorted via the "sortOrder" parameter,
+      i.e., they are ordered last if ascending and first if descending.
+
+   sortOrder  The order in which the "sortBy" parameter is applied.
+      Allowed values are "ascending" and "descending".  If a value for
+      "sortBy" is provided and no "sortOrder" is specified, "sortOrder"
+      SHALL default to ascending.  String type attributes are case
+      insensitive by default, unless the attribute type is defined as a
+      case-exact string.  "sortOrder" MUST sort according to the
+      attribute type; i.e., for case-insensitive attributes, sort the
+      result using case-insensitive Unicode alphabetic sort order with
+      no specific locale implied, and for case-exact attribute types,
+      sort the result using case-sensitive Unicode alphabetic sort
+      order.
+
+3.4.2.4.  Pagination
+
+   Pagination parameters can be used together to "page through" large
+   numbers of resources so as not to overwhelm the client or service
+   provider.  Because pagination is not stateful, clients MUST be
+   prepared to handle inconsistent results.  For example, a request for
+   a list of 10 resources beginning with a startIndex of 1 MAY return
+   different results when repeated, since resources on the service
+   provider may have changed between requests.  Pagination parameters
+   and general behavior are derived from the OpenSearch Protocol
+   [OpenSearch].
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 24]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Table 6 describes the URL pagination parameters.
+
+   +------------+----------------------------+-------------------------+
+   | Parameter  | Description                | Default                 |
+   +------------+----------------------------+-------------------------+
+   | startIndex | The 1-based index of the   | 1                       |
+   |            | first query result.  A     |                         |
+   |            | value less than 1 SHALL be |                         |
+   |            | interpreted as 1.          |                         |
+   |            |                            |                         |
+   | count      | Non-negative integer.      | None.  When specified,  |
+   |            | Specifies the desired      | the service provider    |
+   |            | maximum number of query    | MUST NOT return more    |
+   |            | results per page, e.g.,    | results than specified, |
+   |            | 10.  A negative value      | although it MAY return  |
+   |            | SHALL be interpreted as    | fewer results.  If      |
+   |            | "0".  A value of "0"       | unspecified, the        |
+   |            | indicates that no resource | maximum number of       |
+   |            | results are to be returned | results is set by the   |
+   |            | except for "totalResults". | service provider.       |
+   +------------+----------------------------+-------------------------+
+
+                  Table 6: Pagination Request Parameters
+
+
+   Table 7 describes the query response pagination attributes specified
+   by the service provider.
+
+   +--------------+----------------------------------------------------+
+   | Element      | Description                                        |
+   +--------------+----------------------------------------------------+
+   | itemsPerPage | Non-negative integer.  Specifies the number of     |
+   |              | query results returned in a query response page,   |
+   |              | e.g., 10.                                          |
+   |              |                                                    |
+   | totalResults | Non-negative integer.  Specifies the total number  |
+   |              | of results matching the client query, e.g., 1000.  |
+   |              |                                                    |
+   | startIndex   | The 1-based index of the first result in the       |
+   |              | current set of query results, e.g., 1.             |
+   +--------------+----------------------------------------------------+
+
+                   Table 7: Pagination Response Elements
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 25]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   For example, to retrieve the first 10 Users, set the startIndex to 1
+   and the count to 10:
+
+   GET /Users?startIndex=1&count=10
+   Host: example.com
+   Accept: application/scim+json
+   Authorization: Bearer h480djs93hd8
+
+   The response to the query above returns metadata regarding paging
+   similar to the following example (actual resources removed for
+   brevity):
+
+   {
+     "totalResults":100,
+     "itemsPerPage":10,
+     "startIndex":1,
+     "schemas":["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+     "Resources":[{
+       ...
+     }]
+   }
+
+      Figure 3: ListResponse Format for Returning Multiple Resources
+
+   Given the example above, to continue paging, set the startIndex to 11
+   and re-fetch, i.e., /Users?startIndex=11&count=10.
+
+3.4.2.5.  Attributes
+
+   The following attributes control which attributes SHALL be returned
+   with a returned resource.  SCIM clients MAY use one of these two
+   OPTIONAL parameters, which MUST be supported by SCIM service
+   providers:
+
+   attributes  A multi-valued list of strings indicating the names of
+      resource attributes to return in the response, overriding the set
+      of attributes that would be returned by default.  Attribute names
+      MUST be in standard attribute notation (Section 3.10) form.  See
+      Section 3.9 for additional retrieval query parameters.
+
+   excludedAttributes  A multi-valued list of strings indicating the
+      names of resource attributes to be removed from the default set of
+      attributes to return.  This parameter SHALL have no effect on
+      attributes whose schema "returned" setting is "always" (see
+      Sections 2.2 and 7 of [RFC7643]).  Attribute names MUST be in
+      standard attribute notation (Section 3.10) form.  See Section 3.9
+      for additional retrieval query parameters.
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 26]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+3.4.3.  Querying Resources Using HTTP POST
+
+   Clients MAY execute queries without passing parameters on the URL by
+   using the HTTP POST verb combined with the "/.search" path extension.
+   The inclusion of "/.search" on the end of a valid SCIM endpoint SHALL
+   be used to indicate that the HTTP POST verb is intended to be a query
+   operation.
+
+   To create a new query result set, a SCIM client sends an HTTP POST
+   request to the desired SCIM resource endpoint (ending in "/.search").
+   The body of the POST request MAY include any of the parameters
+   defined in Section 3.4.2.
+
+   Query requests MUST be identified using the following URI:
+   "urn:ietf:params:scim:api:messages:2.0:SearchRequest".  The following
+   attributes are defined for query requests:
+
+   attributes  A multi-valued list of strings indicating the names of
+      resource attributes to return in the response, overriding the set
+      of attributes that would be returned by default.  Attribute names
+      MUST be in standard attribute notation (Section 3.10) form.  See
+      Section 3.9 for additional retrieval query parameters.  OPTIONAL.
+
+   excludedAttributes  A multi-valued list of strings indicating the
+      names of resource attributes to be removed from the default set of
+      attributes to return.  This parameter SHALL have no effect on
+      attributes whose schema "returned" setting is "always" (see
+      Sections 2.2 and 7 of [RFC7643]).  Attribute names MUST be in
+      standard attribute notation (Section 3.10) form.  See Section 3.9
+      for additional retrieval query parameters.  OPTIONAL.
+
+   filter  The filter string used to request a subset of resources.  The
+      filter string MUST be a valid filter (Section 3.4.2.2) expression.
+      OPTIONAL.
+
+   sortBy  A string indicating the attribute whose value SHALL be used
+      to order the returned responses.  The "sortBy" attribute MUST be
+      in standard attribute notation (Section 3.10) form.  See
+      Section 3.4.2.3.  OPTIONAL.
+
+   sortOrder  A string indicating the order in which the "sortBy"
+      parameter is applied.  Allowed values are "ascending" and
+      "descending".  See Section 3.4.2.3.  OPTIONAL.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 27]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   startIndex  An integer indicating the 1-based index of the first
+      query result.  See Section 3.4.2.4.  OPTIONAL.
+
+   count  An integer indicating the desired maximum number of query
+      results per page.  See Section 3.4.2.4.  OPTIONAL.
+
+   After receiving an HTTP POST request, a response is returned as
+   specified in Section 3.4.2.
+
+   The following example shows an HTTP POST Query request with search
+   parameters "attributes", "filter", and "count" included:
+
+   POST /.search
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
+     "attributes": ["displayName", "userName"],
+     "filter":
+       "displayName sw \"smith\"",
+     "startIndex": 1,
+     "count": 10
+   }
+
+                   Figure 4: Example POST Query Request
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 28]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   The example below shows a query response with the first page of
+   results.  For brevity, only two matches are shown: one User and
+   one Group.
+
+   HTTP/1.1 200 OK
+   Content-Type: application/scim+json
+   Location: https://example.com/.search
+
+   {
+     "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+     "totalResults":100,
+     "itemsPerPage":10,
+     "startIndex":1,
+     "Resources":[
+       {
+         "id":"2819c223-7f76-413861904646",
+         "userName":"jsmith",
+         "displayName":"Smith, James"
+       },
+       {
+         "id":"c8596b90-7539-4f20968d1908",
+         "displayName":"Smith Family"
+       },
+        ...
+     ]
+   }
+
+                   Figure 5: Example POST Query Response
+

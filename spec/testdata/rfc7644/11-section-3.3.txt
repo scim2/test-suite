@@ -1,0 +1,143 @@
+3.3.  Creating Resources
+
+   To create new resources, clients send HTTP POST requests to the
+   resource endpoint, such as "/Users" or "/Groups", as defined by the
+   associated resource type endpoint discovery (see Section 4).
+
+   The server SHALL process attributes according to the following
+   mutability rules:
+
+   o  In the request body, attributes whose mutability is "readOnly"
+      (see Sections 2.2 and 7 of [RFC7643]) SHALL be ignored.
+
+   o  Attributes whose mutability is "readWrite" (see Section 2.2 of
+      [RFC7643]) and that are omitted from the request body MAY be
+      assumed to be not asserted by the client.  The service provider
+      MAY assign a default value to non-asserted attributes in the final
+      resource representation.
+
+   o  Service providers MAY take into account whether or not a client
+      has access to all of the resource's attributes when deciding
+      whether or not non-asserted attributes should be defaulted.
+
+   o  Clients that intend to override existing or server-defaulted
+      values for attributes MAY specify "null" for a single-valued
+      attribute or an empty array "[]" for a multi-valued attribute to
+      clear all values.
+
+   When the service provider successfully creates the new resource, an
+   HTTP response SHALL be returned with HTTP status code 201 (Created).
+   The response body SHOULD contain the service provider's
+   representation of the newly created resource.  The URI of the created
+   resource SHALL include, in the HTTP "Location" header and the HTTP
+   body, a JSON representation [RFC7159] with the attribute
+   "meta.location".  Since the server is free to alter and/or ignore
+   POSTed content, returning the full representation can be useful to
+   the client, enabling it to correlate the client's and server's views
+   of the new resource.
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 11]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   If the service provider determines that the creation of the requested
+   resource conflicts with existing resources (e.g., a "User" resource
+   with a duplicate "userName"), the service provider MUST return HTTP
+   status code 409 (Conflict) with a "scimType" error code of
+   "uniqueness", as per Section 3.12.
+
+   In the following example, a client sends a POST request containing a
+   "User" to the "/Users" endpoint.
+
+   POST /Users  HTTP/1.1
+   Host: example.com
+   Accept: application/scim+json
+   Content-Type: application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "userName":"bjensen",
+     "externalId":"bjensen",
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara"
+     }
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 12]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   In response to the example request above, the server signals a
+   successful creation with an HTTP status code 201 (Created) and
+   returns a representation of the resource created:
+
+   HTTP/1.1 201 Created
+   Content-Type: application/scim+json
+   Location:
+    https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
+   ETag: W/"e180ee84f0671b1"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "externalId":"bjensen",
+     "meta":{
+       "resourceType":"User",
+       "created":"2011-08-01T21:32:44.882Z",
+       "lastModified":"2011-08-01T21:32:44.882Z",
+       "location":
+   "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
+       "version":"W\/\"e180ee84f0671b1\""
+     },
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara"
+     },
+     "userName":"bjensen"
+   }
+
+3.3.1.  Resource Types
+
+   When adding a resource to a specific endpoint, the meta attribute
+   "resourceType" SHALL be set by the HTTP service provider to the
+   corresponding resource type for the endpoint.  For example, a POST to
+   the endpoint "/Users" will set "resourceType" to "User", and
+   "/Groups" will set "resourceType" to "Group".
+

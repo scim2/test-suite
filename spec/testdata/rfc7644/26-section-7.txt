@@ -1,0 +1,230 @@
+7.  Security Considerations
+
+7.1.  HTTP Considerations
+
+   The SCIM protocol layers on top of HTTP and is thus subject to the
+   security considerations of HTTP (Section 9 of [RFC7230]) and its
+   related specifications.
+
+   As stated in Section 2.7.1 of [RFC7230], a SCIM client MUST NOT
+   generate the "userinfo" (i.e., username and password) component
+   (and its "@" delimiter) when an "http" URI reference is generated
+   with a message, as userinfo and its "@" delimiter are now disallowed
+   in HTTP.
+
+7.2.  TLS Support Considerations
+
+   SCIM resources (e.g., Users and Groups) contain sensitive
+   information, including passwords.  Therefore, SCIM clients and
+   service providers MUST require the use of a transport-layer security
+   mechanism when communicating with SCIM service providers.  The SCIM
+   service provider MUST support TLS 1.2 [RFC5246] and MAY support
+   additional transport-layer mechanisms meeting its security
+   requirements.  When using TLS, the client MUST perform a TLS/SSL
+   server identity check, per [RFC6125].  Implementation security
+   considerations for TLS can be found in [RFC7525].
+
+7.3.  Authorization Token Considerations
+
+   When using authorization tokens such as those issued by OAuth 2.0
+   [RFC6749], implementers MUST take into account threats and
+   countermeasures as documented in Section 8 of [RFC7521].
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 78]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+7.4.  Bearer Token and Cookie Considerations
+
+   Since the possession of a bearer token or cookie MAY authorize the
+   holder to potentially read, modify, or delete resources, bearer
+   tokens and cookies MUST contain sufficient entropy to prevent a
+   random guessing attack; for example, see Section 5.2 of [RFC6750] and
+   Section 5.1.4.2.2 of [RFC6819].
+
+   As with all SCIM communications, bearer tokens and HTTP cookies MUST
+   be exchanged using TLS.
+
+   Bearer tokens MUST have a limited lifetime that can be determined
+   directly or indirectly (e.g., by checking with a validation service)
+   by the service provider.  By expiring tokens, clients are forced to
+   obtain a new token (which usually involves re-authentication) for
+   continued authorized access.  For example, in OAuth 2.0, a client MAY
+   use OAuth token refresh to obtain a new bearer token after
+   authenticating to an authorization server.  See Section 6 of
+   [RFC6749].
+
+   As with bearer tokens, an HTTP cookie SHOULD last no longer than the
+   lifetime of a browser session.  An expiry time should be set that
+   limits session cookie lifetime as per Section 5.2.1 of [RFC6265].
+
+   Implementations supporting OAuth bearer tokens need to factor in
+   security considerations of this authorization method [RFC7521].
+   Since security is only as good as the weakest link, implementers also
+   need to consider authentication choices coupled with OAuth bearer
+   tokens.  The security considerations of the default authentication
+   method for OAuth bearer tokens, HTTP Basic, are well documented in
+   [HTTP-BASIC-AUTH]; therefore, implementers are encouraged to use
+   stronger authentication methods.  Designating the specific methods of
+   authentication and authorization is out of scope for SCIM; however,
+   this information is provided as a resource to implementers.
+
+7.5.  Privacy Considerations
+
+7.5.1.  Personal Information
+
+   The SCIM Core Schema specification [RFC7643] defines attributes that
+   may contain personally identifying information as well as other
+   sensitive personal data.  The privacy considerations in the Security
+   Considerations section of [RFC7643] MUST be considered.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 79]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+7.5.2.  Disclosure of Sensitive Information in URIs
+
+   As mentioned in Section 9.4 of [RFC7231], SCIM clients requesting
+   information using query filters that use HTTP GET SHOULD give
+   consideration to the information content of the filters and whether
+   or not their exposure in a URI would represent a breach of security
+   or confidentiality through leakage in web browsers or server logs.
+   This is particularly true for information that is legally considered
+   "personally identifiable information" or is otherwise restricted by
+   privacy laws.  In these situations, to ensure maximum security and
+   confidentiality, clients SHOULD query using HTTP POST (see
+   Section 3.4.3).
+
+   Servers that receive HTTP GET requests using filters that contain
+   sensitive or confidential personal information SHOULD respond with
+   HTTP status code 403 to indicate that the operation is forbidden.  A
+   "scimType" error code of "sensitive" may be returned to indicate that
+   the request must be submitted using POST.  The following is a
+   non-normative example:
+
+  HTTP/1.1 403 Forbidden
+
+  {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+    "detail":
+          "Query filter involving 'name' is restricted or confidential",
+    "scimType": "sensitive",
+    "status": "404"
+  }
+
+7.6.  Anonymous Requests
+
+   If a SCIM service provider accepts anonymous requests such as SCIM
+   resource creation requests (via HTTP POST), appropriate security
+   measures should be put in place to prevent or limit exposure to
+   attacks.  The following countermeasures MAY be used:
+
+   o  Try to authenticate web user interface components that formulate
+      the SCIM creation request.  While the end-user may be anonymous,
+      the web user interface component often has its own way to
+      authenticate to the SCIM service provider (e.g., has an OAuth
+      client credential [RFC6749]), and the web user interface component
+      may implement its own measures (e.g., the Completely Automated
+      Public Turing test to tell Computers and Humans Apart (CAPTCHA))
+      to ensure that a legitimate request is being made.
+
+   o  Limit the number of requests that any particular client MAY make
+      in a period of time.
+
+
+
+Hunt, et al.                 Standards Track                   [Page 80]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   o  For User resources, default newly created resources with an
+      "active" setting of "false", and use a secondary confirmation
+      process (e.g., email confirmation) to ensure that the resource
+      created is real.
+
+7.7.  Secure Storage and Handling of Sensitive Data
+
+   An attacker may obtain valid username/password combinations from the
+   SCIM service provider's underlying database by gaining access to the
+   database and/or launching injection attacks.  This could lead to
+   unintended disclosure of username/password combinations.  The impact
+   may extend beyond the domain of the SCIM service provider if the data
+   was provisioned from other domains.
+
+   Administrators should undertake industry best practices to protect
+   the storage of credentials and, in particular, SHOULD follow
+   recommendations outlined in Section 5.1.4.1 of [RFC6819].  These
+   recommendations include, but are not limited to, the following:
+
+   o  Provide injection attack countermeasures (e.g., by validating all
+      inputs and parameters);
+
+   o  Credentials should not be stored in cleartext form;
+
+   o  Store credentials using an encrypted protection mechanism (e.g.,
+      hashing); and
+
+   o  Where possible, avoid passwords as the sole form of
+      authentication, and consider using credentials that are based on
+      asymmetric cryptography.
+
+   As outlined in Section 5.1.4.2 of [RFC6819], administrators SHOULD
+   take countermeasures such as the following, to prevent online attacks
+   on secrets:
+
+   o  Utilize a secure password policy in order to increase user
+      password entropy, which will in turn hinder online attacks and
+      password guessing;
+
+   o  Mitigate attacks on passwords by locking respective accounts that
+      have a number of failed attempts;
+
+   o  Use "tar pit" techniques by temporarily locking a respective
+      account and delaying responses for a certain duration.  The
+      duration may increase with the number of failed attempts; and
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 81]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   o  Use authentication systems that use CAPTCHAs and other factors for
+      authenticating users, to further reduce the possibility of
+      automated attacks.
+
+   Service providers SHOULD define an access control model that
+   differentiates between individual client applications and their
+   specific need to access information, and any User self-service rights
+   to review and update personal profile information.  This may include
+   OAuth 2.0 delegation profiles that allow client systems to act on
+   behalf of users with their permission.
+
+7.8.  Case-Insensitive Comparison and International Languages
+
+   When comparing Unicode strings such as those in query filters or
+   testing for uniqueness of usernames and passwords, strings MUST be
+   appropriately prepared before comparison.  See Section 5.
+

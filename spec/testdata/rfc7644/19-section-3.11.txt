@@ -1,0 +1,36 @@
+3.11.  "/Me" Authenticated Subject Alias
+
+   A client MAY use a URL of the form "<base-URI>/Me" as a URI alias for
+   the User or other resource associated with the currently
+   authenticated subject for any SCIM operation.  A service provider MAY
+   respond in one of three ways:
+
+   o  A service provider that does NOT support this feature SHOULD
+      respond with HTTP status code 501 (Not Implemented).
+
+   o  A service provider MAY choose to redirect the client using HTTP
+      status code 308 (Permanent Redirect) to the resource associated
+      with the authenticated subject.  The client MAY then repeat the
+      request at the indicated location.
+
+   o  A service provider MAY process the SCIM request directly.  In any
+      response, the HTTP "Location" header MUST be the permanent
+      location of the aliased resource associated with the authenticated
+      subject.
+
+   When using the SCIM Create Resource command (HTTP POST) with the
+   "/Me" alias, the desired resourceType being created is at the
+   discretion of the service provider, based on the authenticated
+   subject (if not anonymous) making the request and any request body
+   attributes (e.g., "schemas").  See Section 7.6 for information on
+   security considerations related to this operation.
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 66]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

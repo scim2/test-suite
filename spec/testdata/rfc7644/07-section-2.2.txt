@@ -1,0 +1,19 @@
+2.2.  Anonymous Requests
+
+   In some SCIM deployments, it MAY be acceptable to permit
+   unauthenticated (anonymous) requests -- for example, a user
+   self-registration request where the service provider chooses to
+   accept a SCIM Create request (see Section 3.3) from an anonymous
+   client.  See Section 7.6 for security considerations regarding
+   anonymous requests.
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                    [Page 7]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+

@@ -1,0 +1,13 @@
+3.13.  SCIM Protocol Versioning
+
+   The Base URL MAY be appended with a version identifier as a separate
+   segment in the URL path.  At the time of this writing, the identifier
+   is 'v2'.  If specified, the version identifier MUST appear in the URL
+   path immediately preceding the resource endpoint and conform to the
+   following scheme: the character 'v' followed by the desired SCIM
+   version number, e.g., a version 'v2' User request is specified as
+   /v2/Users.  When specified, service providers MUST perform the
+   operation using the desired version or reject the request.  When
+   omitted, service providers SHOULD perform the operation using the
+   most recent SCIM protocol version supported by the service provider.
+

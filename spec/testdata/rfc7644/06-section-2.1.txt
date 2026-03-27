@@ -1,0 +1,25 @@
+2.1.  Use of Tokens as Authorizations
+
+   When using bearer tokens or PoP tokens that represent an
+   authorization grant, such as a grant issued by OAuth (see [RFC6749]),
+   implementers SHOULD consider the type of authorization granted, any
+   authorized scopes (see Section 3.3 of [RFC6749]), and the security
+   subject(s) that SHOULD be mapped from the authorization when
+   considering local access control rules.  Section 6 of [RFC7521]
+   documents common scenarios for authorization, including:
+
+   o  A client using an assertion to authenticate and/or act on behalf
+      of itself,
+
+   o  A client acting on behalf of a user, and
+
+   o  A client acting on behalf of an anonymous user (for example, see
+      Section 2.2).
+
+   When using OAuth authorization tokens, implementers MUST take into
+   account the threats and countermeasures related to the use of client
+   authorizations, as documented in Section 8 of [RFC7521].  When using
+   other token formats or frameworks, implementers MUST take into
+   account similar threats and countermeasures, especially those
+   documented by the relevant specifications.
+

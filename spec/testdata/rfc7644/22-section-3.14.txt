@@ -1,0 +1,99 @@
+3.14.  Versioning Resources
+
+   The SCIM protocol supports resource versioning via standard HTTP
+   ETags (Section 2.3 of [RFC7232]).  Service providers MAY support weak
+   ETags as the preferred mechanism for performing conditional
+   retrievals and ensuring that clients do not inadvertently overwrite
+   each other's changes, respectively.  When supported, SCIM ETags MUST
+   be specified as an HTTP header and SHOULD be specified within the
+   'version' attribute contained in the resource's 'meta' attribute.
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 71]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   Example create request:
+
+   POST /Users  HTTP/1.1
+   Host: example.com
+   Content-Type:  application/scim+json
+   Authorization: Bearer h480djs93hd8
+   Content-Length: ...
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "userName":"bjensen",
+     "externalId":"bjensen",
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara"
+     }
+   }
+
+   The server responds with an ETag in the response header and meta
+   structure:
+
+   HTTP/1.1 201 Created
+   Content-Type: application/scim+json
+   Location:
+    https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646
+   ETag: W/"e180ee84f0671b1"
+
+   {
+     "schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],
+     "id":"2819c223-7f76-453a-919d-413861904646",
+     "meta":{
+       "resourceType":"User",
+       "created":"2011-08-01T21:32:44.882Z",
+       "lastModified":"2011-08-01T21:32:44.882Z",
+       "location":
+   "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
+       "version":"W\/\"e180ee84f0671b1\""
+     },
+     "name":{
+       "formatted":"Ms. Barbara J Jensen III",
+       "familyName":"Jensen",
+       "givenName":"Barbara"
+     },
+     "userName":"bjensen"
+   }
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 72]
+
+RFC 7644               SCIM Protocol Specification        September 2015
+
+
+   With the returned ETag, clients MAY choose to retrieve the resource
+   only if the resource has been modified.
+
+   An example of conditional retrieval, using the If-None-Match header
+   (Section 3.2 of [RFC7232]):
+
+  GET /Users/2819c223-7f76-453a-919d-413861904646?attributes=displayName
+  Host: example.com
+  Accept: application/scim+json
+  Authorization: Bearer h480djs93hd8
+  If-None-Match: W/"e180ee84f0671b1"
+
+   If the resource has not changed, the service provider simply returns
+   an empty body with a 304 (Not Modified) response code.
+
+   If the service provider supports versioning of resources, the client
+   MAY supply an If-Match header (Section 3.1 of [RFC7232]) for PUT and
+   PATCH operations to ensure that the requested operation succeeds only
+   if the supplied ETag matches the latest service provider resource,
+   e.g., If-Match: W/"e180ee84f0671b1".
+

@@ -1,0 +1,59 @@
+1.  Introduction and Overview
+
+   While there are existing standards for describing and exchanging user
+   information, many of these standards can be difficult to implement
+   and/or use; e.g., their wire protocols do not easily traverse
+   firewalls and/or are not easily layered onto existing web protocols.
+   As a result, many cloud providers implement non-standardized
+   protocols for managing users within their services.  This increases
+   both the cost and complexity associated with organizations adopting
+   products and services from multiple cloud providers, as they must
+   perform redundant integration development.  Similarly, cloud service
+   providers seeking to interoperate with multiple application
+   marketplaces or cloud identity providers would require pairwise
+   integration.
+
+   SCIM seeks to simplify this problem through an easily implemented
+   specification suite that provides a common user schema and extension
+   model, as well as a SCIM protocol document that defines exchanging
+   this schema via an HTTP-based protocol [RFC7644].  The SCIM
+
+
+
+Hunt, et al.                 Standards Track                    [Page 3]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
+   specifications draw design input and feedback from existing
+   identity-related protocols and schemas from a wide variety of sources
+   including, but not limited to, existing services exposed by cloud
+   providers, PortableContacts [PortableContacts], vCards [RFC6350], and
+   Lightweight Directory Access Protocol (LDAP) directory services
+   [RFC4512].
+
+   The SCIM protocol is an application-level protocol for provisioning
+   and managing identity data specified through SCIM schemas.  The
+   protocol supports creation, modification, retrieval, and discovery of
+   core identity resources such as Users and Groups, using a subset of
+   the HTTP methods (GET for retrieval of resources; POST for creation,
+   searching, and bulk modification; PUT for attribute replacement
+   within resources; PATCH for partial update of attributes; and DELETE
+   for removing resources).
+
+   While the SCIM protocol and core schema specifications are intended
+   to cover point-to-point scenarios, implementers and deployers should
+   consider multi-hop and multi-party scenarios such as a service
+   provider acting as a general profile service for in-domain
+   applications (e.g., a directory), as well as scenarios where a
+   service provider in turn passes information to a third-party service
+   provider by acting as either a SCIM client or a SCIM service
+   provider.  Implementers and deployers should carefully consider their
+   service level agreements and privacy agreements when distributing or
+   propagating personal information (see Section 9.3).
+
+   This document provides a JSON-based schema and extension model for
+   representing users and groups, as well as service provider
+   configuration.  This schema is intended for exchange and use with
+   cloud service providers and other cross-domain scenarios.
+

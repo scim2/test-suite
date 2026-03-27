@@ -1,0 +1,47 @@
+3.3.  Attribute Extensions to Resources
+
+   SCIM allows resource types to have extensions in addition to their
+   core schema.  This is similar to how "objectClasses" are used in LDAP
+   [RFC4512].  However, unlike LDAP, there is no inheritance model; all
+   extensions are additive (similar to the LDAP auxiliary object class).
+   Each value in the "schemas" attribute indicates additive schema that
+   MAY exist in a SCIM resource representation.  The "schemas" attribute
+   MUST contain at least one value, which SHALL be the base schema for
+   the resource.  The "schemas" attribute MAY contain additional values
+   indicating extended schemas that are in use.  Schema extensions
+   SHOULD avoid redefining any attributes defined in this specification
+   and SHOULD follow conventions defined in this specification.  Except
+   for the base object schema, the schema extension URI SHALL be used as
+   a JSON container to distinguish attributes belonging to the extension
+   namespace from base schema attributes.  See Figure 5, which is an
+   example of the JSON representation of an enterprise User and is also
+   an example of a User with extended schema.
+
+   In order to determine which URI value in the "schemas" attribute is
+   the base schema and which is an extended schema for any given
+   resource, the resource's "resourceType" attribute value MAY be used
+   to retrieve the resource's "ResourceType" schema (see Section 6).
+   See the "ResourceType" representation in Figure 8 for an example.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hunt, et al.                 Standards Track                   [Page 18]
+
+RFC 7643                    SCIM Core Schema              September 2015
+
+
