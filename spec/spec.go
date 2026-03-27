@@ -98,4 +98,10 @@ type Source struct {
 	// EndLine is the ending line number (inclusive). Equal to StartLine
 	// when the requirement fits on a single line.
 	EndLine int
+	// StartCol is the 1-based column where highlighting begins on
+	// StartLine. Zero means highlight from the beginning of the line.
+	StartCol int
+	// EndCol is the 1-based column where highlighting ends (inclusive)
+	// on EndLine. Zero means highlight to the end of the line.
+	EndCol int
 }

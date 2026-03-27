@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCIM 2.0 Compliance Report</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --panel-bg: #fff;
+  --border: #e0e0e0;
+  --text: #333;
+  --text-muted: #777;
+  --line-num: #aaa;
+  --code-bg: #f8f8f8;
+  --pass: #e8f5e9;
+  --pass-border: #4caf50;
+  --fail: #ffebee;
+  --fail-border: #f44336;
+  --warn: #fff8e1;
+  --warn-border: #ff9800;
+  --untested: #e3f2fd;
+  --untested-border: #2196f3;
+  --not-testable: #f0f0f0;
+  --not-testable-border: #999;
+  --req-highlight: #ede7f6;
+  --req-border: #7e57c2;
+  --selected: #fff3e0;
+  --header-bg: #1a237e;
+  --header-text: #fff;
+  --hover-overlay: rgba(0,0,0,0.03);
+  --coverage-bar-bg: #e0e0e0;
+  --badge-level-bg: #e8eaf6;
+  --badge-level-text: #283593;
+  --badge-feature-bg: #e0f2f1;
+  --badge-feature-text: #00695c;
+  --fail-text: #c62828;
+  --legend-border-overlay: rgba(0,0,0,0.1);
+  --filter-btn-bg: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1a2e;
+    --panel-bg: #16213e;
+    --border: #2a2a4a;
+    --text: #e0e0e0;
+    --text-muted: #999;
+    --line-num: #666;
+    --code-bg: #1e1e3a;
+    --pass: #1b3d1f;
+    --pass-border: #4caf50;
+    --fail: #3d1b1b;
+    --fail-border: #f44336;
+    --warn: #3d3215;
+    --warn-border: #ff9800;
+    --untested: #1b2a3d;
+    --untested-border: #2196f3;
+    --not-testable: #2a2a2a;
+    --not-testable-border: #777;
+    --req-highlight: #2d2350;
+    --req-border: #7e57c2;
+    --selected: #3d2e15;
+    --header-bg: #0d1240;
+    --header-text: #e0e0e0;
+    --hover-overlay: rgba(255,255,255,0.04);
+    --coverage-bar-bg: #333;
+    --badge-level-bg: #1a1a40;
+    --badge-level-text: #8e99f3;
+    --badge-feature-bg: #1a3030;
+    --badge-feature-text: #4db6ac;
+    --fail-text: #ef9a9a;
+    --legend-border-overlay: rgba(255,255,255,0.1);
+    --filter-btn-bg: #1e1e3a;
+  }
+}
+[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --panel-bg: #16213e;
+  --border: #2a2a4a;
+  --text: #e0e0e0;
+  --text-muted: #999;
+  --line-num: #666;
+  --code-bg: #1e1e3a;
+  --pass: #1b3d1f;
+  --pass-border: #4caf50;
+  --fail: #3d1b1b;
+  --fail-border: #f44336;
+  --warn: #3d3215;
+  --warn-border: #ff9800;
+  --untested: #1b2a3d;
+  --untested-border: #2196f3;
+  --not-testable: #2a2a2a;
+  --not-testable-border: #777;
+  --req-highlight: #2d2350;
+  --req-border: #7e57c2;
+  --selected: #3d2e15;
+  --header-bg: #0d1240;
+  --header-text: #e0e0e0;
+  --hover-overlay: rgba(255,255,255,0.04);
+  --coverage-bar-bg: #333;
+  --badge-level-bg: #1a1a40;
+  --badge-level-text: #8e99f3;
+  --badge-feature-bg: #1a3030;
+  --badge-feature-text: #4db6ac;
+  --fail-text: #ef9a9a;
+  --legend-border-overlay: rgba(255,255,255,0.1);
+  --filter-btn-bg: #1e1e3a;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+header {
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
+.tab-bar {
+  display: flex;
+  gap: 4px;
+}
+.tab-bar button {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.tab-bar button.active {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+}
+.tab-bar button:hover { background: rgba(255,255,255,0.2); }
+.header-info {
+  margin-left: auto;
+  font-size: 13px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.spec-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+.spec-scroll {
+  flex: 1;
+  overflow: auto;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.spec-line {
+  display: flex;
+  padding: 0 12px 0 0;
+  min-height: 21px;
+}
+.spec-line:hover { background: var(--hover-overlay); }
+.line-num {
+  color: var(--line-num);
+  text-align: right;
+  padding: 0 12px;
+  min-width: 60px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.line-text {
+  white-space: pre;
+  flex: 1;
+  min-width: 0;
+}
+.spec-line.hl-pass { background: var(--pass); }
+.spec-line.hl-fail { background: var(--fail); }
+.spec-line.hl-warn { background: var(--warn); }
+.spec-line.hl-untested { background: var(--untested); }
+.spec-line.hl-not-testable { background: var(--not-testable); }
+.spec-line.hl-req { background: var(--req-highlight); }
+.spec-line.hl-selected { background: var(--selected) !important; }
+.spec-line.hl-pass,
+.spec-line.hl-fail,
+.spec-line.hl-warn,
+.spec-line.hl-untested,
+.spec-line.hl-req { cursor: pointer; }
+.spec-line.hl-pass .line-gutter,
+.spec-line.hl-fail .line-gutter,
+.spec-line.hl-warn .line-gutter,
+.spec-line.hl-untested .line-gutter,
+.spec-line.hl-req .line-gutter {
+  width: 3px;
+  flex-shrink: 0;
+}
+.spec-line.hl-pass .line-gutter { background: var(--pass-border); }
+.spec-line.hl-fail .line-gutter { background: var(--fail-border); }
+.spec-line.hl-warn .line-gutter { background: var(--warn-border); }
+.spec-line.hl-untested .line-gutter { background: var(--untested-border); }
+.spec-line.hl-not-testable .line-gutter { background: var(--not-testable-border); }
+.spec-line.hl-req .line-gutter { background: var(--req-border); }
+.spec-line.partial { background: rgba(255, 152, 0, 0.08); }
+.hl-span { border-radius: 2px; }
+.hl-span-pass { background: var(--pass); }
+.hl-span-fail { background: var(--fail); }
+.hl-span-warn { background: var(--warn); }
+.hl-span-untested { background: var(--untested); }
+.hl-span-not-testable { background: var(--not-testable); }
+.hl-span-req { background: var(--req-highlight); }
+.report-panel {
+  width: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel-bg);
+}
+.report-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.report-header h2 { font-size: 15px; margin-bottom: 12px; }
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 13px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: var(--code-bg);
+}
+.summary-label { font-weight: 500; }
+.summary-value { font-variant-numeric: tabular-nums; }
+.coverage-bar {
+  margin-top: 12px;
+  background: var(--coverage-bar-bg);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+.coverage-fill {
+  height: 100%;
+  background: var(--pass-border);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.coverage-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.filter-bar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.filter-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--filter-btn-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 500;
+}
+.filter-btn.active { background: var(--header-bg); color: var(--header-text); border-color: var(--header-bg); }
+.filter-btn:hover { border-color: #999; }
+.filter-btn .count {
+  font-weight: 400;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+.report-list {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0;
+}
+.req-item {
+  padding: 8px 16px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
+.req-item:hover { background: var(--hover-overlay); }
+.req-item.selected { background: var(--selected); }
+.req-item.outcome-pass { border-left-color: var(--pass-border); }
+.req-item.outcome-fail { border-left-color: var(--fail-border); }
+.req-item.outcome-warn { border-left-color: var(--warn-border); }
+.req-item.outcome-untested { border-left-color: var(--untested-border); }
+.req-item.outcome-not-testable { border-left-color: var(--not-testable-border); }
+.req-item.outcome-unknown { border-left-color: var(--req-border); }
+.req-id {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+.req-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-level { background: var(--badge-level-bg); color: var(--badge-level-text); }
+.badge-feature { background: var(--badge-feature-bg); color: var(--badge-feature-text); }
+.badge-pass { background: var(--pass); color: #2e7d32; }
+.badge-fail { background: var(--fail); color: #c62828; }
+.badge-warn { background: var(--warn); color: #e65100; }
+.badge-untested { background: var(--untested); color: #1565c0; }
+.req-summary {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.req-message {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fail-text);
+  font-style: italic;
+}
+.no-report {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.legend {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid var(--legend-border-overlay);
+}
+footer {
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.footer-disclaimer {
+  flex: 1;
+  line-height: 1.4;
+}
+.footer-disclaimer a {
+  color: inherit;
+  text-decoration: underline;
+}
+.footer-disclaimer a:hover {
+  color: var(--text);
+}
+.footer-links {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.footer-links a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.theme-toggle {
+  background: var(--code-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--hover-overlay); color: var(--text); }
+.issue-popup {
+  position: absolute;
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  display: none;
+  text-decoration: none;
+}
+.issue-popup:hover { opacity: 0.9; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SCIM 2.0 Compliance</h1>
+  <div class="tab-bar" id="tabs"></div>
+  <div class="header-info" id="headerInfo"></div>
+</header>
+
+<a class="issue-popup" id="issuePopup" target="_blank">Open Issue</a>
+<div class="main">
+  <div class="spec-panel">
+    <div class="spec-scroll" id="specScroll"></div>
+  </div>
+  <div class="report-panel">
+    <div class="report-header" id="reportHeader"></div>
+    <div class="filter-bar" id="filterBar"></div>
+    <div class="report-list" id="reportList"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--pass)"></div> Pass</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fail)"></div> Fail</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--warn)"></div> Warn</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--untested)"></div> Untested</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--not-testable)"></div> Not testable</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-disclaimer">
+    This report is generated by automated tests and does not constitute a certification.
+    If you believe a test deviates from the SCIM 2.0 specification, please
+    <a href="https://github.com/scim2/test-suite/issues" target="_blank">open an issue</a>.
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/scim2/test-suite" target="_blank">GitHub</a>
+    <a href="https://github.com/q-uint" target="_blank">Author</a>
+    {{if .Version}}<span>{{.Version}}</span>{{end}}
+  </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode">Light</button>
+</footer>
+
+<script>
+const RFCS = {{.RFCs}};
+const REQUIREMENTS = {{.Requirements}};
+const REPORT = {{.Report}};
+const ORIGINAL_LINES = {{.OriginalLines}};
+
+// Build outcome map from report.
+const outcomes = {};
+if (REPORT) {
+  for (const entry of (REPORT.passed || [])) outcomes[entry.id] = { outcome: "pass", message: "" };
+  for (const entry of (REPORT.failures || [])) outcomes[entry.id] = { outcome: "fail", message: entry.message };
+  for (const entry of (REPORT.warnings || [])) outcomes[entry.id] = { outcome: "warn", message: entry.message };
+  for (const entry of (REPORT.untested || [])) outcomes[entry.id] = { outcome: "untested", message: "" };
+}
+
+// Build line -> requirements map per RFC.
+// Each entry: { reqs: [req, ...], startCol: N, endCol: N }
+// startCol/endCol: 0 means full line extent; >0 means 1-based column.
+const lineReqs = {};
+for (const req of REQUIREMENTS) {
+  if (req.rfc === 0 || req.startLine === 0) continue;
+  const key = String(req.rfc);
+  if (!lineReqs[key]) lineReqs[key] = {};
+  for (let l = req.startLine; l <= req.endLine; l++) {
+    if (!lineReqs[key][l]) lineReqs[key][l] = { reqs: [], startCol: -1, endCol: -1 };
+    const entry = lineReqs[key][l];
+    entry.reqs.push(req);
+    // Column for this line from this requirement.
+    const sc = (l === req.startLine) ? (req.startCol || 0) : 0;
+    const ec = (l === req.endLine) ? (req.endCol || 0) : 0;
+    // Widen range: 0 means full extent and always wins.
+    if (entry.startCol === -1) entry.startCol = sc;
+    else if (sc === 0 || entry.startCol === 0) entry.startCol = 0;
+    else entry.startCol = Math.min(entry.startCol, sc);
+    if (entry.endCol === -1) entry.endCol = ec;
+    else if (ec === 0 || entry.endCol === 0) entry.endCol = 0;
+    else entry.endCol = Math.max(entry.endCol, ec);
+  }
+}
+
+// Determine outcome class for a requirement.
+function outcomeClass(req) {
+  if (!req.testable) return "not-testable";
+  if (REPORT && outcomes[req.id]) return outcomes[req.id].outcome;
+  if (REPORT) return "untested";
+  return "unknown";
+}
+
+function hlClass(oc) {
+  switch(oc) {
+    case "pass": return "hl-pass";
+    case "fail": return "hl-fail";
+    case "warn": return "hl-warn";
+    case "untested": return "hl-untested";
+    case "not-testable": return "hl-not-testable";
+    default: return "hl-req";
+  }
+}
+
+// State.
+let currentRFC = "7643";
+let selectedReqId = null;
+let activeFilter = "all";
+
+// Get sorted RFC keys.
+const rfcKeys = Object.keys(RFCS).sort();
+
+// Render tabs.
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  for (const key of rfcKeys) {
+    const btn = document.createElement("button");
+    btn.textContent = "RFC " + key;
+    btn.className = key === currentRFC ? "active" : "";
+    btn.onclick = () => { currentRFC = key; renderTabs(); renderSpec(); };
+    tabs.appendChild(btn);
+  }
+  // Extra tab for non-RFC requirements.
+  const hasExtra = REQUIREMENTS.some(r => r.rfc === 0);
+  if (hasExtra) {
+    const btn = document.createElement("button");
+    btn.textContent = "Extra";
+    btn.className = currentRFC === "extra" ? "active" : "";
+    btn.onclick = () => { currentRFC = "extra"; renderTabs(); renderSpec(); };
+    tabs.appendChild(btn);
+  }
+}
+
+// Render spec text.
+function renderSpec() {
+  const container = document.getElementById("specScroll");
+  container.innerHTML = "";
+
+  if (currentRFC === "extra") {
+    renderExtraPanel(container);
+    return;
+  }
+
+  const lines = RFCS[currentRFC] || [];
+  const rlMap = lineReqs[currentRFC] || {};
+
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < lines.length; i++) {
+    const lineNum = i + 1;
+    const div = document.createElement("div");
+    div.className = "spec-line";
+    div.id = "rfc" + currentRFC + "-L" + lineNum;
+
+    const entry = rlMap[lineNum];
+    let worstOC = "unknown";
+    if (entry) {
+      // Use the "worst" outcome for highlighting.
+      const priority = { "fail": 5, "warn": 4, "untested": 3, "not-testable": 1, "pass": 2, "unknown": 0 };
+      for (const r of entry.reqs) {
+        const oc = outcomeClass(r);
+        if (priority[oc] > priority[worstOC]) worstOC = oc;
+      }
+
+      const isPartial = entry.startCol > 0 || entry.endCol > 0;
+      div.classList.add(hlClass(worstOC));
+      if (isPartial) div.classList.add("partial");
+      div.onclick = () => selectReq(entry.reqs[0].id);
+
+      const gutter = document.createElement("div");
+      gutter.className = "line-gutter";
+      div.appendChild(gutter);
+    }
+
+    if (selectedReqId && entry && entry.reqs.some(r => r.id === selectedReqId)) {
+      div.classList.add("hl-selected");
+    }
+
+    const num = document.createElement("span");
+    num.className = "line-num";
+    num.textContent = lineNum;
+    div.appendChild(num);
+
+    const text = document.createElement("span");
+    text.className = "line-text";
+    if (entry && (entry.startCol > 0 || entry.endCol > 0)) {
+      const line = lines[i];
+      const sc = entry.startCol > 0 ? entry.startCol - 1 : 0;
+      const ec = entry.endCol > 0 ? entry.endCol : line.length;
+      if (sc > 0) {
+        const before = document.createElement("span");
+        before.textContent = line.substring(0, sc);
+        text.appendChild(before);
+      }
+      const hl = document.createElement("span");
+      hl.className = "hl-span hl-span-" + worstOC;
+      hl.textContent = line.substring(sc, ec);
+      text.appendChild(hl);
+      if (ec < line.length) {
+        const after = document.createElement("span");
+        after.textContent = line.substring(ec);
+        text.appendChild(after);
+      }
+    } else {
+      text.textContent = lines[i];
+    }
+    div.appendChild(text);
+
+    fragment.appendChild(div);
+  }
+  container.appendChild(fragment);
+}
+
+function renderExtraPanel(container) {
+  const extras = REQUIREMENTS.filter(r => r.rfc === 0);
+  for (const req of extras) {
+    const div = document.createElement("div");
+    div.className = "spec-line " + hlClass(outcomeClass(req));
+    div.style.padding = "8px 16px";
+    div.style.cursor = "pointer";
+    div.onclick = () => selectReq(req.id);
+
+    const gutter = document.createElement("div");
+    gutter.className = "line-gutter";
+    div.appendChild(gutter);
+
+    const text = document.createElement("span");
+    text.className = "line-text";
+    text.style.whiteSpace = "normal";
+    text.innerHTML = "<strong>" + escapeHtml(req.id) + "</strong> [" +
+      escapeHtml(req.level) + "] " + escapeHtml(req.summary);
+    div.appendChild(text);
+    container.appendChild(div);
+  }
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// Render report header.
+function renderReportHeader() {
+  const header = document.getElementById("reportHeader");
+  if (!REPORT) {
+    header.innerHTML = '<h2>Requirements</h2>' +
+      '<div class="coverage-text">' + REQUIREMENTS.length + ' requirements cataloged</div>';
+    document.getElementById("headerInfo").textContent = "No report loaded";
+    return;
+  }
+
+  const cov = REPORT.coverage;
+  document.getElementById("headerInfo").textContent =
+    "Target: " + REPORT.baseURL + "  |  " + REPORT.timestamp;
+
+  let html = '<h2>Compliance Report</h2><div class="summary-grid">';
+  const levels = ["MUST", "MUST NOT", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "MAY"];
+  for (const level of levels) {
+    const c = REPORT.byLevel[level];
+    if (!c) continue;
+    const total = c.pass + c.fail;
+    let val = c.pass + "/" + total;
+    if (c.warn > 0) val += " (" + c.warn + " warned)";
+    html += '<div class="summary-row"><span class="summary-label">' + level +
+      '</span><span class="summary-value">' + val + '</span></div>';
+  }
+  html += '</div>';
+  html += '<div class="coverage-bar"><div class="coverage-fill" style="width:' +
+    cov.percent + '%"></div></div>';
+  html += '<div class="coverage-text">' + cov.tested + '/' + cov.testable +
+    ' testable requirements (' + Math.round(cov.percent) + '% coverage)</div>';
+  header.innerHTML = html;
+}
+
+// Render filter bar.
+function renderFilterBar() {
+  const bar = document.getElementById("filterBar");
+  const counts = { all: 0, pass: 0, fail: 0, warn: 0, untested: 0, "not-testable": 0 };
+  for (const req of REQUIREMENTS) {
+    const oc = outcomeClass(req);
+    counts[oc] = (counts[oc] || 0) + 1;
+    counts.all++;
+  }
+
+  const filters = [
+    { key: "all", label: "All" },
+    { key: "pass", label: "Pass" },
+    { key: "fail", label: "Fail" },
+    { key: "warn", label: "Warn" },
+    { key: "untested", label: "Untested" },
+    { key: "not-testable", label: "N/A" },
+  ];
+
+  bar.innerHTML = "";
+  for (const f of filters) {
+    if (!REPORT && (f.key === "pass" || f.key === "fail" || f.key === "warn" || f.key === "untested")) continue;
+    const btn = document.createElement("button");
+    btn.className = "filter-btn" + (activeFilter === f.key ? " active" : "");
+    btn.innerHTML = f.label + ' <span class="count">' + (counts[f.key] || 0) + '</span>';
+    btn.onclick = () => { activeFilter = f.key; renderFilterBar(); renderReqList(); };
+    bar.appendChild(btn);
+  }
+}
+
+// Render requirement list.
+function renderReqList() {
+  const list = document.getElementById("reportList");
+  list.innerHTML = "";
+
+  const filtered = REQUIREMENTS.filter(req => {
+    if (activeFilter === "all") return true;
+    return outcomeClass(req) === activeFilter;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="no-report">No requirements match this filter.</div>';
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const req of filtered) {
+    const oc = outcomeClass(req);
+    const div = document.createElement("div");
+    div.className = "req-item outcome-" + oc + (req.id === selectedReqId ? " selected" : "");
+    div.id = "req-" + req.id;
+    div.onclick = () => selectReq(req.id);
+
+    let html = '<div class="req-id">' + escapeHtml(req.id) + '</div>';
+    html += '<div class="req-badges">';
+    html += '<span class="badge badge-level">' + escapeHtml(req.level) + '</span>';
+    html += '<span class="badge badge-feature">' + escapeHtml(req.feature) + '</span>';
+    if (REPORT) {
+      const badgeClass = "badge-" + oc;
+      html += '<span class="badge ' + badgeClass + '">' + oc.toUpperCase() + '</span>';
+    }
+    html += '</div>';
+    html += '<div class="req-summary">' + escapeHtml(req.summary) + '</div>';
+
+    if (outcomes[req.id] && outcomes[req.id].message) {
+      html += '<div class="req-message">' + escapeHtml(outcomes[req.id].message) + '</div>';
+    }
+
+    if (req.rfc > 0) {
+      html += '<div class="req-summary">RFC ' + req.rfc + ' Section ' + escapeHtml(req.section) +
+        ', Lines ' + req.startLine + '-' + req.endLine + '</div>';
+    }
+    div.innerHTML = html;
+    fragment.appendChild(div);
+  }
+  list.appendChild(fragment);
+}
+
+// Deselect the current requirement without selecting a new one.
+function deselectReq() {
+  if (!selectedReqId) return;
+  const prev = selectedReqId;
+  selectedReqId = null;
+  document.querySelectorAll(".hl-selected").forEach(el => el.classList.remove("hl-selected"));
+  const prevEl = document.getElementById("req-" + prev);
+  if (prevEl) prevEl.classList.remove("selected");
+}
+
+// Select a requirement.
+function selectReq(id) {
+  window.getSelection().removeAllRanges();
+  const prev = selectedReqId;
+  selectedReqId = id;
+
+  // Update spec highlights.
+  document.querySelectorAll(".hl-selected").forEach(el => el.classList.remove("hl-selected"));
+
+  const req = REQUIREMENTS.find(r => r.id === id);
+  if (req && req.rfc > 0 && String(req.rfc) === currentRFC) {
+    for (let l = req.startLine; l <= req.endLine; l++) {
+      const el = document.getElementById("rfc" + currentRFC + "-L" + l);
+      if (el) el.classList.add("hl-selected");
+    }
+    // Scroll spec to requirement.
+    const target = document.getElementById("rfc" + currentRFC + "-L" + req.startLine);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else if (req && req.rfc > 0 && String(req.rfc) !== currentRFC) {
+    // Switch to the correct RFC tab.
+    currentRFC = String(req.rfc);
+    renderTabs();
+    renderSpec();
+    // After re-render, scroll and highlight.
+    requestAnimationFrame(() => {
+      for (let l = req.startLine; l <= req.endLine; l++) {
+        const el = document.getElementById("rfc" + currentRFC + "-L" + l);
+        if (el) el.classList.add("hl-selected");
+      }
+      const target = document.getElementById("rfc" + currentRFC + "-L" + req.startLine);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
+  // Update list selection.
+  if (prev) {
+    const prevEl = document.getElementById("req-" + prev);
+    if (prevEl) prevEl.classList.remove("selected");
+  }
+  const curEl = document.getElementById("req-" + id);
+  if (curEl) {
+    curEl.classList.add("selected");
+    curEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+// Theme toggle.
+function getEffectiveTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+  const btn = document.getElementById("themeToggle");
+  btn.textContent = theme === "dark" ? "Light" : "Dark";
+}
+applyTheme(getEffectiveTheme());
+document.getElementById("themeToggle").onclick = () => {
+  const next = getEffectiveTheme() === "dark" ? "light" : "dark";
+  localStorage.setItem("theme", next);
+  applyTheme(next);
+};
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!localStorage.getItem("theme")) applyTheme(getEffectiveTheme());
+});
+
+// Build GitHub issue URL for a requirement.
+const ISSUE_BASE = "https://github.com/scim2/test-suite/issues/new";
+const REPO_BASE = "https://github.com/scim2/test-suite";
+const VERSION = "{{.Version}}";
+const COMMIT_HASH = "{{.CommitHash}}";
+const RFC_FILES = { "7642": "spec/testdata/rfc7642.txt", "7643": "spec/testdata/rfc7643.txt", "7644": "spec/testdata/rfc7644.txt" };
+
+function sourceLink(rfc, startLine, endLine) {
+  const file = RFC_FILES[String(rfc)];
+  if (!file) return "";
+  if (!COMMIT_HASH) return "";
+  const ref = COMMIT_HASH;
+  let url = REPO_BASE + "/blob/" + ref + "/" + file + "#L" + startLine;
+  if (endLine && endLine !== startLine) url += "-L" + endLine;
+  return url;
+}
+
+// Text selection popup for opening issues referencing spec text.
+const issuePopup = document.getElementById("issuePopup");
+document.getElementById("specScroll").addEventListener("mouseup", (e) => {
+  const sel = window.getSelection();
+  const text = sel.toString().trim();
+  if (!text || !COMMIT_HASH) { issuePopup.style.display = "none"; return; }
+  deselectReq();
+
+  // Find line range from selection.
+  const container = document.getElementById("specScroll");
+  let startLine = null, endLine = null;
+  const walk = (node) => {
+    const el = node.nodeType === 3 ? node.parentElement : node;
+    const line = el.closest(".spec-line");
+    if (!line) return null;
+    const num = line.querySelector(".line-num");
+    return num ? parseInt(num.textContent, 10) : null;
+  };
+  startLine = walk(sel.anchorNode);
+  endLine = walk(sel.focusNode);
+  if (startLine && endLine && startLine > endLine) {
+    [startLine, endLine] = [endLine, startLine];
+  }
+
+  // Map display line numbers back to original source lines.
+  const olm = ORIGINAL_LINES[currentRFC] || {};
+  const origStart = startLine ? (olm[startLine] || startLine) : null;
+  const origEnd = endLine ? (olm[endLine] || endLine) : null;
+
+  const title = "RFC " + currentRFC + (origStart ? " L" + origStart : "") + ": <short description>";
+  const link = origStart ? sourceLink(currentRFC, origStart, origEnd) : "";
+  let body = "**Source:** RFC " + currentRFC;
+  if (origStart) body += ", Line" + (origEnd && origEnd !== origStart ? "s " + origStart + "-" + origEnd : " " + origStart);
+  body += "\n";
+  if (link) body += "\n" + link + "\n";
+  body += "\n---\n\n<!-- Describe the issue, question, or suggestion below. -->\n\n";
+  const url = ISSUE_BASE + "?title=" + encodeURIComponent(title) +
+    "&body=" + encodeURIComponent(body);
+
+  issuePopup.href = url;
+  issuePopup.style.display = "block";
+
+  const rect = container.getBoundingClientRect();
+  const selRect = sel.getRangeAt(0).getBoundingClientRect();
+  issuePopup.style.left = (selRect.left + selRect.width / 2 - 40) + "px";
+  issuePopup.style.top = (selRect.top - 30) + "px";
+});
+
+document.addEventListener("mousedown", (e) => {
+  if (e.target !== issuePopup) issuePopup.style.display = "none";
+});
+document.addEventListener("selectionchange", () => {
+  const text = window.getSelection().toString().trim();
+  if (!text) issuePopup.style.display = "none";
+});
+
+// Update URL hash when selecting a requirement.
+const _origSelectReq = selectReq;
+let navigatingFromHash = false;
+selectReq = function(id) {
+  _origSelectReq(id);
+  if (id && !navigatingFromHash) history.replaceState(null, "", "#" + id);
+};
+
+// Navigate to fragment on load and on hash change.
+function navigateToHash() {
+  const hash = location.hash.replace(/^#/, "");
+  if (!hash) return;
+
+  // Try as requirement ID first.
+  const req = REQUIREMENTS.find(r => r.id === hash);
+  if (req) {
+    navigatingFromHash = true;
+    selectReq(req.id);
+    navigatingFromHash = false;
+    return;
+  }
+
+  // Try as RFC line reference: RFC{num}-L{line}.
+  const lineMatch = hash.match(/^RFC(\d+)-L(\d+)$/);
+  if (lineMatch) {
+    const rfc = lineMatch[1];
+    const line = parseInt(lineMatch[2], 10);
+    if (RFCS[rfc]) {
+      if (currentRFC !== rfc) {
+        currentRFC = rfc;
+        renderTabs();
+        renderSpec();
+      }
+      requestAnimationFrame(() => {
+        const el = document.getElementById("rfc" + rfc + "-L" + line);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }
+}
+
+// Init.
+renderTabs();
+renderSpec();
+renderReportHeader();
+renderFilterBar();
+renderReqList();
+navigateToHash();
+window.addEventListener("hashchange", navigateToHash);
+</script>
+</body>
+</html>

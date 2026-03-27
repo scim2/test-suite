@@ -39,6 +39,16 @@
             go test -v -count=1 ./compliance/ \
               -scim.report=compliance-report.txt \
               "$@"
+            version="$(git describe --tags --always 2>/dev/null || git rev-parse --short HEAD)"
+            if ! git diff --quiet HEAD 2>/dev/null; then
+              version="''${version}*"
+            fi
+            commit="$(git rev-parse HEAD 2>/dev/null || true)"
+            go run ./cmd/website/ \
+              -version "$version" \
+              -commit "$commit" \
+              -report ./compliance/compliance-report.json \
+              -out ./compliance/compliance-report.html
           '';
         in
         {

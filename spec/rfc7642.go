@@ -8,7 +8,7 @@ var RFC7642 = []Requirement{
 		Source: Source{
 			RFC:       7642,
 			Section:   "4",
-			StartLine: 944,
+			StartLine: 943,
 			EndLine:   945,
 		},
 		Feature:  Core,

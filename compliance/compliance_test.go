@@ -1,11 +1,13 @@
 package compliance
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -270,6 +272,19 @@ func writeReport(baseURL string) {
 		}
 	}
 
+	// Write JSON report alongside text.
+	if *flagReport != "" {
+		jsonPath := strings.TrimSuffix(*flagReport, filepath.Ext(*flagReport)) + ".json"
+		jsonData, err := json.MarshalIndent(rpt, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to marshal JSON report: %v\n", err)
+		} else if err := os.WriteFile(jsonPath, jsonData, 0o644); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write JSON report: %v\n", err)
+		} else {
+			fmt.Printf("JSON report written to %s\n", jsonPath)
+		}
+	}
+
 	// Console summary (short).
 	fmt.Println("\nSCIM 2.0 Compliance Report")
 	for _, level := range []string{"MUST", "MUST NOT", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "MAY"} {
@@ -298,34 +313,36 @@ func writeReport(baseURL string) {
 }
 
 type levelCounts struct {
-	Pass, Fail, Warn int
+	Pass int `json:"pass"`
+	Fail int `json:"fail"`
+	Warn int `json:"warn"`
 }
 
 type report struct {
-	Timestamp string
-	BaseURL   string
-	ByLevel   map[string]levelCounts
-	Failures  []reportEntry
-	Warnings  []reportEntry
-	Passed    []reportEntry
-	Untested  []reportEntry
-	Coverage  reportCoverage
+	Timestamp string                 `json:"timestamp"`
+	BaseURL   string                 `json:"baseURL"`
+	ByLevel   map[string]levelCounts `json:"byLevel"`
+	Failures  []reportEntry          `json:"failures"`
+	Warnings  []reportEntry          `json:"warnings"`
+	Passed    []reportEntry          `json:"passed"`
+	Untested  []reportEntry          `json:"untested"`
+	Coverage  reportCoverage         `json:"coverage"`
 }
 
 type reportCoverage struct {
-	Tested   int
-	Testable int
-	Percent  float64
+	Tested   int     `json:"tested"`
+	Testable int     `json:"testable"`
+	Percent  float64 `json:"percent"`
 }
 
 type reportEntry struct {
-	ID      string
-	Level   string
-	Summary string
-	RFC     int
-	Section string
-	Lines   [2]int
-	Feature string
-	Outcome string
-	Message string
+	ID      string `json:"id"`
+	Level   string `json:"level"`
+	Summary string `json:"summary"`
+	RFC     int    `json:"rfc"`
+	Section string `json:"section"`
+	Lines   [2]int `json:"lines"`
+	Feature string `json:"feature"`
+	Outcome string `json:"outcome"`
+	Message string `json:"message,omitempty"`
 }
