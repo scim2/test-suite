@@ -19,6 +19,19 @@ var rfc7643_3_3 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "schemas_at_least_one",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+
+				schemas := GetStringSlice(body, "schemas")
+				r.Check(len(schemas) >= 1,
+					"POST /Users: schemas must contain at least one value")
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-3.3-L981",
@@ -34,5 +47,24 @@ var rfc7643_3_3 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "extension_container",
+			Fn: func(r *Run) {
+				body, resp := r.CreateTestResource(map[string]any{
+					"schemas": []string{TestResourceSchema, TestExtSchema},
+					TestExtSchema: map[string]any{
+						"extString":   "ext-value",
+						"extRequired": "required-value",
+					},
+				})
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST returned %d", resp.StatusCode)
+				}
+
+				extData, ok := body[TestExtSchema].(map[string]any)
+				r.Check(ok && extData != nil,
+					"extension attributes not found under schema URI key")
+			},
+		}},
 	},
 }

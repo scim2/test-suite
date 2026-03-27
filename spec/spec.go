@@ -85,6 +85,9 @@ type Requirement struct {
 	// Some requirements (e.g. internal password hashing) are not
 	// externally observable and are marked false.
 	Testable bool
+
+	// Tests contains the compliance tests for this requirement.
+	Tests []Test
 }
 
 // Source pinpoints where a requirement comes from in the RFC txt.
@@ -104,4 +107,14 @@ type Source struct {
 	// EndCol is the 1-based column where highlighting ends (inclusive)
 	// on EndLine. Zero means highlight to the end of the line.
 	EndCol int
+}
+
+// Test is a single compliance test for a requirement.
+type Test struct {
+	// Name is a short identifier for the test (e.g. "eq_match").
+	Name string
+
+	// Fn is the test function. It receives a *Run for assertions
+	// and lifecycle management.
+	Fn func(r *Run)
 }

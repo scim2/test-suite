@@ -18,5 +18,18 @@ var rfc7644_3_2 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "put_does_not_create",
+			Fn: func(r *Run) {
+				resp, err := r.Client.Put("/Users/nonexistent-"+RandomSuffix(), map[string]any{
+					"schemas":  []string{UserSchema},
+					"userName": "scim-test-putcreate-" + RandomSuffix(),
+				})
+				r.RequireOK(err)
+
+				r.Check(resp.StatusCode == 404,
+					FmtStatus("PUT /Users/<nonexistent>", resp.StatusCode, 404))
+			},
+		}},
 	},
 }

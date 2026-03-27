@@ -1,5 +1,7 @@
 package spec
 
+import "fmt"
+
 var l7643_2_4 = rfcLines(rfc7643Sections, "08-section-2.4.txt")
 
 var rfc7643_2_4 = []Requirement{
@@ -46,6 +48,48 @@ var rfc7643_2_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "primary_uniqueness",
+			Fn: func(r *Run) {
+				// Create user with two emails, both marked primary.
+				resp, err := r.Client.Post("/Users", map[string]any{
+					"schemas":  []string{UserSchema},
+					"userName": "scim-test-primary-" + RandomSuffix(),
+					"emails": []map[string]any{
+						{"value": "a@example.com", "type": "work", "primary": true},
+						{"value": "b@example.com", "type": "home", "primary": true},
+					},
+				})
+				r.RequireOK(err)
+				if resp.StatusCode == 201 {
+					if id := IDOf(resp.Body); id != "" {
+						r.Cleanup(func() { _, _ = r.Client.Delete("/Users/" + id) })
+					}
+				}
+
+				if resp.StatusCode == 201 && resp.Body != nil {
+					emails, _ := resp.Body["emails"].([]any)
+					primaryCount := 0
+					for _, e := range emails {
+						em, ok := e.(map[string]any)
+						if !ok {
+							continue
+						}
+						if p, _ := em["primary"].(bool); p {
+							primaryCount++
+						}
+					}
+					r.Check(primaryCount <= 1,
+						fmt.Sprintf("emails has %d primary=true values, want at most 1", primaryCount))
+				} else if resp.StatusCode == 400 {
+					// Server correctly rejected the input.
+					r.Check(true, "")
+				} else {
+					r.Check(false,
+						FmtStatus("POST /Users with duplicate primary", resp.StatusCode, 400))
+				}
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-2.4-L655",
@@ -59,6 +103,34 @@ var rfc7643_2_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "multivalued_canonicalize",
+			Fn: func(r *Run) {
+				resp, err := r.Client.Post("/Users", map[string]any{
+					"schemas":  []string{UserSchema},
+					"userName": "scim-test-canon-" + RandomSuffix(),
+					"emails": []map[string]any{
+						{"value": "TEST@EXAMPLE.COM", "type": "work"},
+					},
+				})
+				r.RequireOK(err)
+				if resp.StatusCode == 201 {
+					if id := IDOf(resp.Body); id != "" {
+						r.Cleanup(func() { _, _ = r.Client.Delete("/Users/" + id) })
+					}
+				}
+
+				if resp.StatusCode == 201 && resp.Body != nil {
+					emails, _ := resp.Body["emails"].([]any)
+					if len(emails) > 0 {
+						first, _ := emails[0].(map[string]any)
+						v, _ := first["value"].(string)
+						r.Check(v != "",
+							"email value was empty after canonicalization")
+					}
+				}
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-2.4-L663",
@@ -72,5 +144,55 @@ var rfc7643_2_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "no_duplicate_type_value",
+			Fn: func(r *Run) {
+				// Create user with duplicate (type, value) email entries.
+				resp, err := r.Client.Post("/Users", map[string]any{
+					"schemas":  []string{UserSchema},
+					"userName": "scim-test-dedup-" + RandomSuffix(),
+					"emails": []map[string]any{
+						{"value": "dup@example.com", "type": "work"},
+						{"value": "dup@example.com", "type": "work"},
+					},
+				})
+				r.RequireOK(err)
+				if resp.StatusCode == 201 {
+					if id := IDOf(resp.Body); id != "" {
+						r.Cleanup(func() { _, _ = r.Client.Delete("/Users/" + id) })
+					}
+				}
+
+				if resp.StatusCode == 201 && resp.Body != nil {
+					emails, _ := resp.Body["emails"].([]any)
+
+					type tv struct{ t, v string }
+					seen := make(map[tv]bool)
+					hasDupes := false
+					for _, e := range emails {
+						em, ok := e.(map[string]any)
+						if !ok {
+							continue
+						}
+						key := tv{
+							t: fmt.Sprintf("%v", em["type"]),
+							v: fmt.Sprintf("%v", em["value"]),
+						}
+						if seen[key] {
+							hasDupes = true
+						}
+						seen[key] = true
+					}
+					r.Check(!hasDupes,
+						fmt.Sprintf("emails contains duplicate (type, value) pairs: %v", emails))
+				} else if resp.StatusCode == 400 {
+					// Server correctly rejected duplicate input.
+					r.Check(true, "")
+				} else {
+					r.Check(false,
+						FmtStatus("POST /Users with duplicate (type,value)", resp.StatusCode, 400))
+				}
+			},
+		}},
 	},
 }

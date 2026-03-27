@@ -18,6 +18,22 @@ var rfc7643_2_1 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "schemas_present",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST returned %d", resp.StatusCode)
+				}
+
+				r.Check(body != nil,
+					"POST /Users: response is not a JSON object")
+
+				schemas := GetStringSlice(body, "schemas")
+				r.Check(len(schemas) > 0,
+					"POST /Users: response missing schemas attribute")
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-2.1-L369",
@@ -31,5 +47,24 @@ var rfc7643_2_1 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "attribute_name_format",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST returned %d", resp.StatusCode)
+				}
+
+				valid := true
+				for key := range body {
+					if !IsValidAttrName(key) {
+						valid = false
+						r.Logf("invalid attribute name: %q", key)
+					}
+				}
+				r.Check(valid,
+					"response contains attribute names not conforming to ATTRNAME ABNF")
+			},
+		}},
 	},
 }

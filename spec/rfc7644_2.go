@@ -17,6 +17,22 @@ var rfc7644_2 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "www_authenticate_header",
+			Fn: func(r *Run) {
+				rawClient := r.RawClient()
+				resp, err := rawClient.Get("/Users")
+				r.RequireOK(err)
+
+				if resp.StatusCode == 401 {
+					wwwAuth := resp.Header.Get("WWW-Authenticate")
+					r.Check(wwwAuth != "",
+						"401 response missing WWW-Authenticate header")
+				} else {
+					r.Check(true, "")
+				}
+			},
+		}},
 	},
 	{
 		ID:      "RFC7644-2-L311",

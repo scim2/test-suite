@@ -17,5 +17,28 @@ var rfc7644_3_13 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "if_match_wrong_version",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+				id := IDOf(body)
+				userName, _ := body["userName"].(string)
+
+				putResp := r.DoWithHeaders(
+					"PUT", "/Users/"+id,
+					map[string]any{
+						"schemas":  []string{UserSchema},
+						"userName": userName,
+					},
+					map[string]string{"If-Match": "W/\"wrong-version\""},
+				)
+
+				r.Check(putResp.StatusCode == 412,
+					FmtStatus("PUT with wrong If-Match", putResp.StatusCode, 412))
+			},
+		}},
 	},
 }

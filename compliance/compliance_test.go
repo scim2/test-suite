@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -27,18 +26,7 @@ var (
 	flagReport = flag.String("scim.report", "compliance-report.txt", "Path to write JSON report")
 )
 
-var (
-	client   *scim.Client
-	features *scim.Features
-	force    map[spec.Feature]bool
-
-	mu      sync.Mutex
-	results []Result
-)
-
-// TestMain initializes the SCIM client, discovers features, runs all
-// tests, and writes a compliance report.
-func TestMain(m *testing.M) {
+func TestCompliance(t *testing.T) {
 	flag.Parse()
 
 	baseURL := *flagURL
@@ -46,11 +34,12 @@ func TestMain(m *testing.M) {
 	var ts *httptest.Server
 	if baseURL == "" {
 		ts = httptest.NewServer(testserver.New())
+		defer ts.Close()
 		baseURL = ts.URL
 		fmt.Println("using in-memory test server at", baseURL)
 	}
 
-	client = &scim.Client{
+	client := &scim.Client{
 		BaseURL:    baseURL,
 		HTTPClient: new(http.Client),
 	}
@@ -62,24 +51,27 @@ func TestMain(m *testing.M) {
 		client.Auth = scim.BasicAuth{User: *flagUser, Pass: *flagPass}
 	}
 
-	force = parseForce(*flagForce)
-
-	var err error
-	features, err = client.Discover()
+	features, err := client.Discover()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "discovery failed: %v\n", err)
-		os.Exit(1)
+		t.Fatalf("discovery failed: %v", err)
 	}
 
-	code := m.Run()
+	report := RunAll(Config{
+		Client:   client,
+		Features: features,
+		Force:    parseForce(*flagForce),
+		Verbose:  true,
+	})
 
-	writeReport(baseURL)
+	writeReport(baseURL, report.Results)
 
-	if ts != nil {
-		ts.Close()
+	// Fail the test if any requirement failed.
+	for _, r := range report.Results {
+		if r.Outcome == Fail {
+			t.Errorf("[FAIL] %s/%s: %s",
+				strings.Join(r.RequirementIDs, ","), r.TestName, r.Message)
+		}
 	}
-
-	os.Exit(code)
 }
 
 func parseForce(s string) map[spec.Feature]bool {
@@ -103,10 +95,7 @@ func writeEntry(b *strings.Builder, e reportEntry) {
 	}
 }
 
-func writeReport(baseURL string) {
-	mu.Lock()
-	defer mu.Unlock()
-
+func writeReport(baseURL string, results []Result) {
 	// Build per-requirement outcome map (first outcome wins for dedup).
 	type reqResult struct {
 		outcome Outcome

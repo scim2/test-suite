@@ -1,5 +1,7 @@
 package spec
 
+import "fmt"
+
 var l7643_3 = rfcLines(rfc7643Sections, "10-section-3.txt")
 
 var rfc7643_3 = []Requirement{
@@ -19,6 +21,19 @@ var rfc7643_3 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "schemas_array_non_empty",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+
+				schemas := GetStringSlice(body, "schemas")
+				r.Check(len(schemas) > 0,
+					"POST /Users: empty schemas array in response")
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-3-L711",
@@ -34,6 +49,19 @@ var rfc7643_3 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "schemas_contains_base_schema",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+
+				schemas := GetStringSlice(body, "schemas")
+				r.Check(HasSchema(body, UserSchema),
+					fmt.Sprintf("POST /Users: schemas %v missing base schema %s", schemas, UserSchema))
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-3-L713",
@@ -49,6 +77,27 @@ var rfc7643_3 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "no_duplicate_schemas",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+
+				schemas := GetStringSlice(body, "schemas")
+				seen := make(map[string]bool)
+				hasDupes := false
+				for _, s := range schemas {
+					if seen[s] {
+						hasDupes = true
+					}
+					seen[s] = true
+				}
+				r.Check(!hasDupes,
+					fmt.Sprintf("POST /Users: duplicate values in schemas: %v", schemas))
+			},
+		}},
 	},
 	{
 		ID:      "RFC7643-3-L714",

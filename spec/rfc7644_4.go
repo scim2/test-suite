@@ -17,6 +17,19 @@ var rfc7644_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "service_provider_config",
+			Fn: func(r *Run) {
+				resp, err := r.Client.Get("/ServiceProviderConfig")
+				r.RequireOK(err)
+
+				r.Check(resp.StatusCode == 200,
+					FmtStatus("GET /ServiceProviderConfig", resp.StatusCode, 200))
+
+				r.Check(HasSchema(resp.Body, "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"),
+					"ServiceProviderConfig missing expected schemas value")
+			},
+		}},
 	},
 	{
 		ID:      "RFC7644-4-L4098",
@@ -30,6 +43,19 @@ var rfc7644_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "schemas_endpoint",
+			Fn: func(r *Run) {
+				resp, err := r.Client.Get("/Schemas")
+				r.RequireOK(err)
+
+				r.Check(resp.StatusCode == 200,
+					FmtStatus("GET /Schemas", resp.StatusCode, 200))
+
+				r.Check(HasSchema(resp.Body, "urn:ietf:params:scim:api:messages:2.0:ListResponse"),
+					"/Schemas response missing ListResponse schema")
+			},
+		}},
 	},
 	{
 		ID:      "RFC7644-4-L4125",
@@ -43,5 +69,15 @@ var rfc7644_4 = []Requirement{
 		},
 		Feature:  Core,
 		Testable: true,
+		Tests: []Test{{
+			Name: "discovery_ignores_query_params",
+			Fn: func(r *Run) {
+				resp, err := r.Client.Get("/ServiceProviderConfig?filter=invalid&sortBy=id&startIndex=999")
+				r.RequireOK(err)
+
+				r.Check(resp.StatusCode == 200,
+					FmtStatus("GET /ServiceProviderConfig with query params", resp.StatusCode, 200))
+			},
+		}},
 	},
 }

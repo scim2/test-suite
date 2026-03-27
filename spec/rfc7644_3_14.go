@@ -1,5 +1,7 @@
 package spec
 
+import "strings"
+
 var l7644_3_14 = rfcLines(rfc7644Sections, "22-section-3.14.txt")
 
 var rfc7644_3_14 = []Requirement{
@@ -17,5 +19,24 @@ var rfc7644_3_14 = []Requirement{
 		},
 		Feature:  ETag,
 		Testable: true,
+		Tests: []Test{{
+			Name: "etag_in_http_header",
+			Fn: func(r *Run) {
+				body, resp := r.CreateUser()
+				if resp.StatusCode != 201 {
+					r.Fatalf("setup: POST /Users returned %d", resp.StatusCode)
+				}
+
+				id := IDOf(body)
+				getResp, err := r.Client.Get("/Users/" + id)
+				r.RequireOK(err)
+
+				etag := getResp.Header.Get("ETag")
+				if etag != "" {
+					r.Check(strings.HasPrefix(etag, "W/") || strings.HasPrefix(etag, "\""),
+						"ETag header present but not a valid entity-tag")
+				}
+			},
+		}},
 	},
 }
