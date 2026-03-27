@@ -12,15 +12,6 @@ var rfc7642Text string
 //go:embed testdata/rfc7643/*.txt
 var rfc7643FS embed.FS
 
-//go:embed testdata/rfc7644/*.txt
-var rfc7644FS embed.FS
-
-// section records a section file's name and the global line where it starts.
-type section struct {
-	file      string
-	startLine int // 1-based global line number
-}
-
 var rfc7643Sections = []section{
 	{"00-front.txt", 1},
 	{"01-section-1.txt", 148},
@@ -47,6 +38,9 @@ var rfc7643Sections = []section{
 	{"22-section-9.txt", 5103},
 	{"23-back.txt", 5215},
 }
+
+//go:embed testdata/rfc7644/*.txt
+var rfc7644FS embed.FS
 
 var rfc7644Sections = []section{
 	{"00-front.txt", 1},
@@ -127,6 +121,22 @@ func SectionFile(rfc, startLine, endLine int) (path string, localStart, localEnd
 	return dir + "/" + s.file, startLine - s.startLine + 1, endLine - s.startLine + 1
 }
 
+func assembleFS(fs embed.FS, dir string) (string, error) {
+	entries, err := fs.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	for _, e := range entries {
+		data, err := fs.ReadFile(dir + "/" + e.Name())
+		if err != nil {
+			return "", err
+		}
+		b.Write(data)
+	}
+	return b.String(), nil
+}
+
 // lineMapper converts local line numbers within a section file to
 // global line numbers in the original monolithic RFC text.
 type lineMapper func(local int) int
@@ -142,18 +152,8 @@ func rfcLines(sections []section, file string) lineMapper {
 	panic("unknown section file: " + file)
 }
 
-func assembleFS(fs embed.FS, dir string) (string, error) {
-	entries, err := fs.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-	var b strings.Builder
-	for _, e := range entries {
-		data, err := fs.ReadFile(dir + "/" + e.Name())
-		if err != nil {
-			return "", err
-		}
-		b.Write(data)
-	}
-	return b.String(), nil
+// section records a section file's name and the global line where it starts.
+type section struct {
+	file      string
+	startLine int // 1-based global line number
 }

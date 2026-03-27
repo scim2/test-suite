@@ -198,6 +198,29 @@ func TestNoDuplicateIDs(t *testing.T) {
 	}
 }
 
+func TestRFCTextIntegrity(t *testing.T) {
+	origFiles := map[int]string{
+		7642: "testdata/rfc7642.txt",
+		7643: "testdata/rfc7643.txt",
+		7644: "testdata/rfc7644.txt",
+	}
+	for rfc, path := range origFiles {
+		t.Run(fmt.Sprintf("RFC%d", rfc), func(t *testing.T) {
+			assembled, err := RFCText(rfc)
+			if err != nil {
+				t.Fatalf("loading RFC %d: %v", rfc, err)
+			}
+			original, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("reading %s: %v", path, err)
+			}
+			if assembled != string(original) {
+				t.Errorf("assembled text does not match %s", path)
+			}
+		})
+	}
+}
+
 func TestRequiredFields(t *testing.T) {
 	for _, r := range All {
 		t.Run(r.ID, func(t *testing.T) {
@@ -269,27 +292,4 @@ type rfcFile struct {
 type skipRange struct {
 	start, end int
 	reason     string
-}
-
-func TestRFCTextIntegrity(t *testing.T) {
-	origFiles := map[int]string{
-		7642: "testdata/rfc7642.txt",
-		7643: "testdata/rfc7643.txt",
-		7644: "testdata/rfc7644.txt",
-	}
-	for rfc, path := range origFiles {
-		t.Run(fmt.Sprintf("RFC%d", rfc), func(t *testing.T) {
-			assembled, err := RFCText(rfc)
-			if err != nil {
-				t.Fatalf("loading RFC %d: %v", rfc, err)
-			}
-			original, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatalf("reading %s: %v", path, err)
-			}
-			if assembled != string(original) {
-				t.Errorf("assembled text does not match %s", path)
-			}
-		})
-	}
 }

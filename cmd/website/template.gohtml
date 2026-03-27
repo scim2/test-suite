@@ -275,12 +275,30 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
   color: var(--text-muted);
   margin-top: 4px;
 }
-.filter-bar {
-  padding: 8px 16px;
+.filter-section {
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+}
+.filter-row > span {
+  display: contents;
+}
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 52px;
   flex-shrink: 0;
 }
 .filter-btn {
@@ -299,6 +317,18 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
   font-weight: 400;
   opacity: 0.7;
   margin-left: 2px;
+}
+.filter-btn.feature-btn {
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.filter-btn.feature-btn.active {
+  background: var(--badge-feature-bg);
+  color: var(--badge-feature-text);
+  border-color: var(--badge-feature-text);
 }
 .report-list {
   flex: 1;
@@ -461,7 +491,10 @@ footer {
   </div>
   <div class="report-panel">
     <div class="report-header" id="reportHeader"></div>
-    <div class="filter-bar" id="filterBar"></div>
+    <div class="filter-section">
+      <div class="filter-row"><span class="filter-label">Status</span><span id="filterBar"></span></div>
+      <div class="filter-row"><span class="filter-label">Feature</span><span id="featureBar"></span></div>
+    </div>
     <div class="report-list" id="reportList"></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-swatch" style="background:var(--pass)"></div> Pass</div>
@@ -542,6 +575,7 @@ function hlClass(oc) {
 let currentRFC = "7643";
 let selectedReqId = null;
 let activeFilter = "all";
+let activeFeature = "all";
 
 // Get sorted RFC keys.
 const rfcKeys = Object.keys(RFCS).sort();
@@ -764,14 +798,44 @@ function renderFilterBar() {
   }
 }
 
+// Render feature filter bar.
+function renderFeatureBar() {
+  const bar = document.getElementById("featureBar");
+  const counts = {};
+  let total = 0;
+  for (const req of REQUIREMENTS) {
+    const f = req.feature || "other";
+    counts[f] = (counts[f] || 0) + 1;
+    total++;
+  }
+
+  const features = Object.keys(counts).sort();
+  bar.innerHTML = "";
+
+  const allBtn = document.createElement("button");
+  allBtn.className = "filter-btn feature-btn" + (activeFeature === "all" ? " active" : "");
+  allBtn.innerHTML = 'All <span class="count">' + total + '</span>';
+  allBtn.onclick = () => { activeFeature = "all"; renderFeatureBar(); renderReqList(); };
+  bar.appendChild(allBtn);
+
+  for (const f of features) {
+    const btn = document.createElement("button");
+    btn.className = "filter-btn feature-btn" + (activeFeature === f ? " active" : "");
+    btn.innerHTML = escapeHtml(f) + ' <span class="count">' + counts[f] + '</span>';
+    btn.onclick = () => { activeFeature = f; renderFeatureBar(); renderReqList(); };
+    bar.appendChild(btn);
+  }
+}
+
 // Render requirement list.
 function renderReqList() {
   const list = document.getElementById("reportList");
   list.innerHTML = "";
 
   const filtered = REQUIREMENTS.filter(req => {
-    if (activeFilter === "all") return true;
-    return outcomeClass(req) === activeFilter;
+    if (activeFilter !== "all" && outcomeClass(req) !== activeFilter) return false;
+    if (activeFeature !== "all" && (req.feature || "other") !== activeFeature) return false;
+    return true;
   });
 
   if (filtered.length === 0) {
@@ -997,6 +1061,7 @@ renderTabs();
 renderSpec();
 renderReportHeader();
 renderFilterBar();
+renderFeatureBar();
 renderReqList();
 navigateToHash();
 window.addEventListener("hashchange", navigateToHash);
