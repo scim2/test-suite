@@ -98,14 +98,38 @@ func writeEntry(b *strings.Builder, e reportEntry) {
 func writeReport(baseURL string, results []Result) {
 	// Build per-requirement outcome map (first outcome wins for dedup).
 	type reqResult struct {
-		outcome Outcome
-		message string
+		outcome  Outcome
+		message  string
+		subtests []subtestEntry
 	}
-	byReq := make(map[string]reqResult)
+	byReq := make(map[string]*reqResult)
 	for _, r := range results {
 		for _, id := range r.RequirementIDs {
-			if _, exists := byReq[id]; !exists || r.Outcome == Fail {
-				byReq[id] = reqResult{r.Outcome, r.Message}
+			rr, exists := byReq[id]
+			if !exists {
+				rr = &reqResult{}
+				byReq[id] = rr
+			}
+			if !exists || r.Outcome == Fail {
+				rr.outcome = r.Outcome
+				rr.message = r.Message
+			}
+			if strings.Contains(r.TestName, "/") {
+				parts := strings.SplitN(r.TestName, "/", 2)
+				outcome := "pass"
+				switch r.Outcome {
+				case Fail:
+					outcome = "fail"
+				case Warn:
+					outcome = "warn"
+				case Skip:
+					outcome = "skip"
+				}
+				rr.subtests = append(rr.subtests, subtestEntry{
+					Name:    parts[1],
+					Outcome: outcome,
+					Message: r.Message,
+				})
 			}
 		}
 	}
@@ -159,6 +183,8 @@ func writeReport(baseURL string, results []Result) {
 			untested = append(untested, entry)
 			continue
 		}
+
+		entry.Subtests = rr.subtests
 
 		switch rr.outcome {
 		case Pass:
@@ -325,13 +351,20 @@ type reportCoverage struct {
 }
 
 type reportEntry struct {
-	ID      string `json:"id"`
-	Level   string `json:"level"`
-	Summary string `json:"summary"`
-	RFC     int    `json:"rfc"`
-	Section string `json:"section"`
-	Lines   [2]int `json:"lines"`
-	Feature string `json:"feature"`
+	ID       string         `json:"id"`
+	Level    string         `json:"level"`
+	Summary  string         `json:"summary"`
+	RFC      int            `json:"rfc"`
+	Section  string         `json:"section"`
+	Lines    [2]int         `json:"lines"`
+	Feature  string         `json:"feature"`
+	Outcome  string         `json:"outcome"`
+	Message  string         `json:"message,omitempty"`
+	Subtests []subtestEntry `json:"subtests,omitempty"`
+}
+
+type subtestEntry struct {
+	Name    string `json:"name"`
 	Outcome string `json:"outcome"`
 	Message string `json:"message,omitempty"`
 }

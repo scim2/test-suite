@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/duckdb/duckdb-go/v2 v2.10501.0
-	github.com/elimity-com/scim v0.0.0-20260326205157-401757ae4067
+	github.com/elimity-com/scim v0.0.0-20260328082225-d5e7ba418946
 )
 
 require (

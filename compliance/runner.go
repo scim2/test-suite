@@ -39,6 +39,25 @@ func featureSupported(cfg Config, f spec.Feature) bool {
 	return false
 }
 
+func printResult(name string, outcome Outcome, msg string, logs []string) {
+	symbol := "PASS"
+	switch outcome {
+	case Fail:
+		symbol = "FAIL"
+	case Warn:
+		symbol = "WARN"
+	case Skip:
+		symbol = "SKIP"
+	}
+	fmt.Printf("  [%s] %s\n", symbol, name)
+	if msg != "" {
+		fmt.Printf("         %s\n", msg)
+	}
+	for _, l := range logs {
+		fmt.Printf("         %s\n", l)
+	}
+}
+
 // Config holds the settings for a compliance run.
 type Config struct {
 	Client   *scim.Client
@@ -80,13 +99,49 @@ func RunAll(cfg Config) Report {
 		adv := featureSupported(cfg, req.Feature)
 
 		for _, test := range req.Tests {
-			name := req.ID + "/" + test.Name
 			r := &spec.Run{
 				Client:   cfg.Client,
 				Features: cfg.Features,
 			}
 			r.Execute(test.Fn)
 
+			// If the test used subtests, expand each into its own result.
+			if subs := r.SubResults(); len(subs) > 0 {
+				for _, sub := range subs {
+					subName := test.Name + "/" + sub.Name
+					name := req.ID + "/" + subName
+
+					var outcome Outcome
+					var msg string
+					switch {
+					case sub.Skipped:
+						outcome = Skip
+					case sub.Failed && adv:
+						outcome = Fail
+						msg = strings.Join(sub.Msgs, "; ")
+					case sub.Failed && !adv:
+						outcome = Warn
+						msg = strings.Join(sub.Msgs, "; ")
+					default:
+						outcome = Pass
+					}
+
+					results = append(results, Result{
+						RequirementIDs: []string{req.ID},
+						TestName:       subName,
+						Outcome:        outcome,
+						Message:        msg,
+					})
+
+					if cfg.Verbose {
+						printResult(name, outcome, msg, sub.Logs)
+					}
+				}
+				continue
+			}
+
+			// No subtests: single result as before.
+			name := req.ID + "/" + test.Name
 			var outcome Outcome
 			var msg string
 
@@ -111,22 +166,7 @@ func RunAll(cfg Config) Report {
 			})
 
 			if cfg.Verbose {
-				symbol := "PASS"
-				switch outcome {
-				case Fail:
-					symbol = "FAIL"
-				case Warn:
-					symbol = "WARN"
-				case Skip:
-					symbol = "SKIP"
-				}
-				fmt.Printf("  [%s] %s\n", symbol, name)
-				if msg != "" {
-					fmt.Printf("         %s\n", msg)
-				}
-				for _, l := range r.Logs() {
-					fmt.Printf("         %s\n", l)
-				}
+				printResult(name, outcome, msg, r.Logs())
 			}
 		}
 	}

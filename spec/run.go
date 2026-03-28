@@ -7,13 +7,17 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"math/big"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
+	"github.com/elimity-com/scim/schema"
+	"github.com/scim2/test-suite/fuzz"
 	"github.com/scim2/test-suite/scim"
 )
 
@@ -79,6 +83,12 @@ func IsBase64(s string) bool {
 	return err == nil
 }
 
+// IsSchemaURI returns true if the key is a SCIM schema URI
+// (extension container key), not a regular attribute name.
+func IsSchemaURI(s string) bool {
+	return strings.HasPrefix(s, "urn:ietf:params:scim:schemas:")
+}
+
 // IsValidAttrName checks if a string conforms to the SCIM ATTRNAME ABNF:
 // ALPHA *(nameChar) where nameChar = "-" / "_" / DIGIT / ALPHA.
 func IsValidAttrName(s string) bool {
@@ -106,6 +116,21 @@ func RandomSuffix() string {
 	return hex.EncodeToString(b)
 }
 
+// DiscoveredExtension holds a parsed extension schema and whether it is required.
+type DiscoveredExtension struct {
+	Schema   schema.Schema
+	Required bool
+}
+
+// DiscoveredResourceType holds a resource type and its parsed schemas,
+// as fetched from /ResourceTypes and /Schemas.
+type DiscoveredResourceType struct {
+	Name       string
+	Endpoint   string
+	Schema     schema.Schema
+	Extensions []DiscoveredExtension
+}
+
 // Run provides assertions, HTTP helpers, and lifecycle management for
 // a single compliance test. It carries the SCIM client so that test
 // functions defined in spec/ can make HTTP calls without importing
@@ -114,11 +139,12 @@ type Run struct {
 	Client   *scim.Client
 	Features *scim.Features
 
-	failed   bool
-	skipped  bool
-	msgs     []string
-	logs     []string
-	cleanups []func()
+	failed     bool
+	skipped    bool
+	msgs       []string
+	logs       []string
+	cleanups   []func()
+	subResults []SubResult
 }
 
 // Check asserts a condition. When ok is false, Errorf is called.
@@ -131,6 +157,31 @@ func (r *Run) Check(ok bool, msg string) {
 // Cleanup registers a function to be called after the test completes.
 func (r *Run) Cleanup(fn func()) {
 	r.cleanups = append(r.cleanups, fn)
+}
+
+// CreateFuzzedResource generates a resource from the schema using the
+// fuzzer, POSTs it to the endpoint, and registers cleanup.
+func (r *Run) CreateFuzzedResource(rt DiscoveredResourceType, opts ...fuzz.Option) (map[string]any, *scim.Response) {
+	body := fuzz.Generate(rt.Schema, opts...)
+
+	schemaURIs := []string{rt.Schema.ID}
+	for _, ext := range rt.Extensions {
+		if ext.Required {
+			schemaURIs = append(schemaURIs, ext.Schema.ID)
+			body[ext.Schema.ID] = fuzz.Generate(ext.Schema, opts...)
+		}
+	}
+	body["schemas"] = schemaURIs
+
+	resp, err := r.Client.Post(rt.Endpoint, body)
+	r.RequireOK(err)
+
+	if id, ok := resp.Body["id"].(string); ok && resp.StatusCode == 201 {
+		endpoint := rt.Endpoint
+		r.Cleanup(func() { _, _ = r.Client.Delete(endpoint + "/" + id) })
+	}
+
+	return resp.Body, resp
 }
 
 // CreateGroup creates a Group and registers cleanup to delete it.
@@ -185,6 +236,84 @@ func (r *Run) CreateUser() (map[string]any, *scim.Response) {
 	}
 
 	return resp.Body, resp
+}
+
+// DiscoverResourceTypes fetches /ResourceTypes and /Schemas, parses the
+// schemas, and returns structured resource type definitions.
+func (r *Run) DiscoverResourceTypes() []DiscoveredResourceType {
+	rtResp, err := r.Client.Get("/ResourceTypes")
+	r.RequireOK(err)
+	if rtResp.StatusCode != 200 || rtResp.Body == nil {
+		r.Fatalf("GET /ResourceTypes returned %d", rtResp.StatusCode)
+	}
+
+	schemasResp, err := r.Client.Get("/Schemas")
+	r.RequireOK(err)
+	if schemasResp.StatusCode != 200 || schemasResp.Body == nil {
+		r.Fatalf("GET /Schemas returned %d", schemasResp.StatusCode)
+	}
+
+	schemaMap := make(map[string]schema.Schema)
+	if resources, ok := schemasResp.Body["Resources"].([]any); ok {
+		for _, res := range resources {
+			m, ok := res.(map[string]any)
+			if !ok {
+				continue
+			}
+			raw, err := json.Marshal(m)
+			if err != nil {
+				continue
+			}
+			var s schema.Schema
+			if err := json.Unmarshal(raw, &s); err != nil {
+				continue
+			}
+			schemaMap[s.ID] = s
+		}
+	}
+
+	var result []DiscoveredResourceType
+	resources, _ := rtResp.Body["Resources"].([]any)
+	for _, res := range resources {
+		rt, ok := res.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := rt["name"].(string)
+		endpoint, _ := rt["endpoint"].(string)
+		schemaURI, _ := rt["schema"].(string)
+
+		s, ok := schemaMap[schemaURI]
+		if !ok {
+			continue
+		}
+
+		drt := DiscoveredResourceType{
+			Name:     name,
+			Endpoint: endpoint,
+			Schema:   s,
+		}
+
+		if exts, ok := rt["schemaExtensions"].([]any); ok {
+			for _, ext := range exts {
+				e, ok := ext.(map[string]any)
+				if !ok {
+					continue
+				}
+				extURI, _ := e["schema"].(string)
+				req, _ := e["required"].(bool)
+				if es, ok := schemaMap[extURI]; ok {
+					drt.Extensions = append(drt.Extensions, DiscoveredExtension{
+						Schema:   es,
+						Required: req,
+					})
+				}
+			}
+		}
+
+		result = append(result, drt)
+	}
+	return result
 }
 
 // DoWithHeaders executes an HTTP request with additional headers.
@@ -286,6 +415,41 @@ func (r *Run) Skipf(format string, args ...any) {
 
 // Skipped reports whether the test was skipped.
 func (r *Run) Skipped() bool { return r.skipped }
+
+// SubResults returns the collected subtest results.
+func (r *Run) SubResults() []SubResult { return r.subResults }
+
+// Subtest runs fn as a named subtest. Each subtest gets its own
+// pass/fail/skip state and cleanup scope. Results are collected on
+// the parent Run and can be expanded by the compliance runner.
+func (r *Run) Subtest(name string, fn func(r *Run)) {
+	sub := &Run{
+		Client:   r.Client,
+		Features: r.Features,
+	}
+	sub.Execute(fn)
+
+	r.subResults = append(r.subResults, SubResult{
+		Name:    name,
+		Failed:  sub.Failed(),
+		Skipped: sub.Skipped(),
+		Msgs:    sub.Messages(),
+		Logs:    sub.Logs(),
+	})
+
+	if sub.Failed() {
+		r.failed = true
+	}
+}
+
+// SubResult holds the outcome of a single subtest.
+type SubResult struct {
+	Name    string
+	Failed  bool
+	Skipped bool
+	Msgs    []string
+	Logs    []string
+}
 
 // fatalSentinel is used by Fatalf to stop test execution via panic/recover.
 type fatalSentinel struct{}

@@ -35,6 +35,7 @@
   --badge-feature-bg: #e0f2f1;
   --badge-feature-text: #00695c;
   --fail-text: #c62828;
+  --pass-text: #2e7d32;
   --legend-border-overlay: rgba(0,0,0,0.1);
   --filter-btn-bg: #fff;
 }
@@ -69,6 +70,7 @@
     --badge-feature-bg: #1a3030;
     --badge-feature-text: #4db6ac;
     --fail-text: #ef9a9a;
+    --pass-text: #81c784;
     --legend-border-overlay: rgba(255,255,255,0.1);
     --filter-btn-bg: #1e1e3a;
   }
@@ -103,6 +105,7 @@
   --badge-feature-bg: #1a3030;
   --badge-feature-text: #4db6ac;
   --fail-text: #ef9a9a;
+  --pass-text: #81c784;
   --legend-border-overlay: rgba(255,255,255,0.1);
   --filter-btn-bg: #1e1e3a;
 }
@@ -368,8 +371,8 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
 }
 .badge-level { background: var(--badge-level-bg); color: var(--badge-level-text); }
 .badge-feature { background: var(--badge-feature-bg); color: var(--badge-feature-text); }
-.badge-pass { background: var(--pass); color: #2e7d32; }
-.badge-fail { background: var(--fail); color: #c62828; }
+.badge-pass { background: var(--pass); color: var(--pass-text); }
+.badge-fail { background: var(--fail); color: var(--fail-text); }
 .badge-warn { background: var(--warn); color: #e65100; }
 .badge-untested { background: var(--untested); color: #1565c0; }
 .req-summary {
@@ -383,6 +386,25 @@ header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
   font-size: 12px;
   color: var(--fail-text);
   font-style: italic;
+}
+.req-subtests {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.subtest-item {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.subtest-pass {
+  background: var(--pass);
+  color: var(--pass-text);
+}
+.subtest-fail {
+  background: var(--fail);
+  color: var(--fail-text);
 }
 .no-report {
   padding: 24px 16px;
@@ -529,10 +551,10 @@ const ORIGINAL_LINES = {{.OriginalLines}};
 // Build outcome map from report.
 const outcomes = {};
 if (REPORT) {
-  for (const entry of (REPORT.passed || [])) outcomes[entry.id] = { outcome: "pass", message: "" };
-  for (const entry of (REPORT.failures || [])) outcomes[entry.id] = { outcome: "fail", message: entry.message };
-  for (const entry of (REPORT.warnings || [])) outcomes[entry.id] = { outcome: "warn", message: entry.message };
-  for (const entry of (REPORT.untested || [])) outcomes[entry.id] = { outcome: "untested", message: "" };
+  for (const entry of (REPORT.passed || [])) outcomes[entry.id] = { outcome: "pass", message: "", subtests: entry.subtests || [] };
+  for (const entry of (REPORT.failures || [])) outcomes[entry.id] = { outcome: "fail", message: entry.message, subtests: entry.subtests || [] };
+  for (const entry of (REPORT.warnings || [])) outcomes[entry.id] = { outcome: "warn", message: entry.message, subtests: entry.subtests || [] };
+  for (const entry of (REPORT.untested || [])) outcomes[entry.id] = { outcome: "untested", message: "", subtests: [] };
 }
 
 // Build line -> segments map per RFC.
@@ -859,8 +881,25 @@ function renderReqList() {
       const badgeClass = "badge-" + oc;
       html += '<span class="badge ' + badgeClass + '">' + oc.toUpperCase() + '</span>';
     }
+    if (outcomes[req.id] && outcomes[req.id].subtests && outcomes[req.id].subtests.length > 0) {
+      const subs = outcomes[req.id].subtests;
+      const passCount = subs.filter(s => s.outcome === "pass").length;
+      const total = subs.length;
+      const subClass = passCount === total ? "badge-pass" : "badge-fail";
+      html += '<span class="badge ' + subClass + '">' + passCount + '/' + total + '</span>';
+    }
     html += '</div>';
     html += '<div class="req-summary">' + escapeHtml(req.summary) + '</div>';
+
+    if (outcomes[req.id] && outcomes[req.id].subtests && outcomes[req.id].subtests.length > 0) {
+      const subs = outcomes[req.id].subtests;
+      html += '<div class="req-subtests">';
+      for (const sub of subs) {
+        const sc = sub.outcome === "pass" ? "subtest-pass" : "subtest-fail";
+        html += '<span class="subtest-item ' + sc + '">' + escapeHtml(sub.name) + '</span>';
+      }
+      html += '</div>';
+    }
 
     if (outcomes[req.id] && outcomes[req.id].message) {
       html += '<div class="req-message">' + escapeHtml(outcomes[req.id].message) + '</div>';

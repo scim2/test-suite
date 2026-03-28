@@ -21,17 +21,21 @@ var rfc7643_2_1 = []Requirement{
 		Tests: []Test{{
 			Name: "schemas_present",
 			Fn: func(r *Run) {
-				body, resp := r.CreateUser()
-				if resp.StatusCode != 201 {
-					r.Fatalf("setup: POST returned %d", resp.StatusCode)
+				for _, rt := range r.DiscoverResourceTypes() {
+					r.Subtest(rt.Name, func(r *Run) {
+						body, resp := r.CreateFuzzedResource(rt)
+						if resp.StatusCode != 201 {
+							r.Fatalf("POST %s returned %d", rt.Endpoint, resp.StatusCode)
+						}
+
+						r.Check(body != nil,
+							"response is not a JSON object")
+
+						schemas := GetStringSlice(body, "schemas")
+						r.Check(len(schemas) > 0,
+							"response missing schemas attribute")
+					})
 				}
-
-				r.Check(body != nil,
-					"POST /Users: response is not a JSON object")
-
-				schemas := GetStringSlice(body, "schemas")
-				r.Check(len(schemas) > 0,
-					"POST /Users: response missing schemas attribute")
 			},
 		}},
 	},
@@ -50,20 +54,27 @@ var rfc7643_2_1 = []Requirement{
 		Tests: []Test{{
 			Name: "attribute_name_format",
 			Fn: func(r *Run) {
-				body, resp := r.CreateUser()
-				if resp.StatusCode != 201 {
-					r.Fatalf("setup: POST returned %d", resp.StatusCode)
-				}
+				for _, rt := range r.DiscoverResourceTypes() {
+					r.Subtest(rt.Name, func(r *Run) {
+						body, resp := r.CreateFuzzedResource(rt)
+						if resp.StatusCode != 201 {
+							r.Fatalf("POST %s returned %d", rt.Endpoint, resp.StatusCode)
+						}
 
-				valid := true
-				for key := range body {
-					if !IsValidAttrName(key) {
-						valid = false
-						r.Logf("invalid attribute name: %q", key)
-					}
+						valid := true
+						for key := range body {
+							if IsSchemaURI(key) {
+								continue
+							}
+							if !IsValidAttrName(key) {
+								valid = false
+								r.Logf("invalid attribute name: %q", key)
+							}
+						}
+						r.Check(valid,
+							"response contains attribute names not conforming to ATTRNAME ABNF")
+					})
 				}
-				r.Check(valid,
-					"response contains attribute names not conforming to ATTRNAME ABNF")
 			},
 		}},
 	},
