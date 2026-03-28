@@ -795,6 +795,7 @@ function renderFilterBar() {
   const bar = document.getElementById("filterBar");
   const counts = { all: 0, pass: 0, fail: 0, warn: 0, untested: 0, "not-testable": 0 };
   for (const req of REQUIREMENTS) {
+    if (activeFeature !== "all" && (req.feature || "other") !== activeFeature) continue;
     const oc = outcomeClass(req);
     counts[oc] = (counts[oc] || 0) + 1;
     counts.all++;
@@ -815,7 +816,7 @@ function renderFilterBar() {
     const btn = document.createElement("button");
     btn.className = "filter-btn" + (activeFilter === f.key ? " active" : "");
     btn.innerHTML = f.label + ' <span class="count">' + (counts[f.key] || 0) + '</span>';
-    btn.onclick = () => { activeFilter = f.key; renderFilterBar(); renderReqList(); };
+    btn.onclick = () => { activeFilter = f.key; renderFilterBar(); renderFeatureBar(); renderReqList(); };
     bar.appendChild(btn);
   }
 }
@@ -826,6 +827,7 @@ function renderFeatureBar() {
   const counts = {};
   let total = 0;
   for (const req of REQUIREMENTS) {
+    if (activeFilter !== "all" && outcomeClass(req) !== activeFilter) continue;
     const f = req.feature || "other";
     counts[f] = (counts[f] || 0) + 1;
     total++;
@@ -837,14 +839,14 @@ function renderFeatureBar() {
   const allBtn = document.createElement("button");
   allBtn.className = "filter-btn feature-btn" + (activeFeature === "all" ? " active" : "");
   allBtn.innerHTML = 'All <span class="count">' + total + '</span>';
-  allBtn.onclick = () => { activeFeature = "all"; renderFeatureBar(); renderReqList(); };
+  allBtn.onclick = () => { activeFeature = "all"; renderFilterBar(); renderFeatureBar(); renderReqList(); };
   bar.appendChild(allBtn);
 
   for (const f of features) {
     const btn = document.createElement("button");
     btn.className = "filter-btn feature-btn" + (activeFeature === f ? " active" : "");
     btn.innerHTML = escapeHtml(f) + ' <span class="count">' + counts[f] + '</span>';
-    btn.onclick = () => { activeFeature = f; renderFeatureBar(); renderReqList(); };
+    btn.onclick = () => { activeFeature = f; renderFilterBar(); renderFeatureBar(); renderReqList(); };
     bar.appendChild(btn);
   }
 }
